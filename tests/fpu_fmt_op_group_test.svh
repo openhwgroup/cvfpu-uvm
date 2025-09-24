@@ -1,0 +1,64 @@
+/*
+ *  Copyright (c) 2025 CEA*
+ *  *Commissariat a l'Energie Atomique et aux Energies Alternatives (CEA)
+ *
+ *  SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ *
+ *  Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ *  may not use this file except in compliance with the License, or, at your
+ *  option, the Apache License version 2.0. You may obtain a copy of the
+ *  License at
+ *
+ *  https://solderpad.org/licenses/SHL-2.1/
+ *
+ *  Unless required by applicable law or agreed to in writing, any work
+ *  distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ *  License for the specific language governing permissions and limitations
+ *  under the License.
+ */
+/*
+ *  Authors       : Ihsane TAHIR
+ *  Creation Date : March, 2025
+ *  Description   : Pseudo-random test where format and operation group are fixed 
+ *                  to a random value, remaining fields are random
+ *  History       :
+ */
+
+
+class fpu_fmt_op_group_test extends base_test;
+
+    `uvm_component_utils(fpu_fmt_op_group_test)
+
+    fpu_fmt_op_group_seq  m_seq;
+  
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+    function new(string name, uvm_component parent);
+      super.new(name, parent);
+    endfunction: new
+
+    // -------------------------------------------------------------------------
+    // Pre Main Phase
+    // -------------------------------------------------------------------------
+    virtual task pre_main_phase(uvm_phase phase);
+
+      int         op_group_cfg;
+      logic [1:0] fmt;
+      
+      op_group_cfg = $urandom_range(0,3);
+      fmt = $urandom_range(1); // Generate random format FP32/FP64
+
+      // Create new sequence
+      m_seq = fpu_fmt_op_group_seq::type_id::create("seq");      
+      if(!$cast(base_sequence, m_seq)) `uvm_fatal("CAST FAILED", "cannot cast base seqence");
+
+      m_seq.set_op_group(op_group_cfg);
+      m_seq.set_fmt(fmt);
+
+      super.pre_main_phase(phase);
+
+    endtask: pre_main_phase
+  
+endclass: fpu_fmt_op_group_test
