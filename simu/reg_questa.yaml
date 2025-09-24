@@ -1,0 +1,37 @@
+#
+#  Copyright (c) 2025 CEA*
+#  *Commissariat a l'Energie Atomique et aux Energies Alternatives (CEA)
+#
+#  SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+#
+#  Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+#  may not use this file except in compliance with the License, or, at your
+#  option, the Apache License version 2.0. You may obtain a copy of the
+#  License at
+#
+#  https://solderpad.org/licenses/SHL-2.1/
+#
+#  Unless required by applicable law or agreed to in writing, any work
+#  distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#  License for the specific language governing permissions and limitations
+#  under the License.
+#
+#
+#  Authors       : Tanuj Khandelwal
+#  Creation Date : March, 2025
+#  Description   : 
+#  History       :
+#
+
+- tool: questa
+  compile:
+    work_lib     : "work"
+    svlog_option : "+incdir+${PROJECT_DIR} -L  $QUESTA_PATH/uvm-1.1d"
+    svlog_source : "${PROJECT_DIR}/top/rtl/tb_top.sv"
+    yaml_lists   : "${PROJECT_DIR}/fpu_common/fpu_common_questa.yaml ${PROJECT_DIR}/simu/sim_verilog_questa.yaml ${PROJECT_DIR}/simu/sim_sverilog_questa.yaml ${PROJECT_DIR}/tb_questa.yaml  ${PROJECT_DIR}/fpu_agent/fpu_agent_questa.yaml ${PROJECT_DIR}/ref_model_csim/fpu_refmodel_questa.yaml ${PROJECT_DIR}/env/fpu_env_questa.yaml ${PROJECT_DIR}/tests/fpu_test_questa.yaml "
+    vopt_option  :  "-o opt -work work  -debug -64  -suppress 2583,13314 -lint=full -L  $QUESTA_PATH/uvm-1.1d"
+    top_entity   :  "top"
+  sim:
+    sim_option   : "-64 -lib work opt  +TIMEOUT=30000000 -sv_lib $PROJECT_DIR/ref_model_csim/cpp/build/refmodel_csim_lib"
+

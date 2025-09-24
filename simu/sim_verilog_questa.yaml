@@ -1,0 +1,53 @@
+#
+#  Copyright (c) 2025 CEA*
+#  *Commissariat a l'Energie Atomique et aux Energies Alternatives (CEA)
+#
+#  SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+#
+#  Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+#  may not use this file except in compliance with the License, or, at your
+#  option, the Apache License version 2.0. You may obtain a copy of the
+#  License at
+#
+#  https://solderpad.org/licenses/SHL-2.1/
+#
+#  Unless required by applicable law or agreed to in writing, any work
+#  distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#  License for the specific language governing permissions and limitations
+#  under the License.
+#
+#
+#  Authors       : Tanuj Khandelwal
+#  Creation Date : March, 2025
+#  Description   : 
+#  History       :
+#
+
+- tool: questa
+  compile:
+    work_lib     : "work"
+    vlog_option  : "+incdir+${CVA6_REPO_DIR}/core/cvfpu"
+    vlog_source  : "${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/clk/rtl/gated_clk_cell.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_ctrl.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_ff1.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_pack_single.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_prepare.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_round_single.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_special.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_srt_single.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fdsu/rtl/pa_fdsu_top.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fpu/rtl/pa_fpu_dp.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fpu/rtl/pa_fpu_frbus.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fpu/rtl/pa_fpu_src_type.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_ctrl.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_double.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_ff1.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_pack.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_prepare.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_round.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_scalar_dp.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt_radix16_bound_table.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt_radix16_with_sqrt.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt.v
+                    ${CVA6_REPO_DIR}/core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_top.v"
