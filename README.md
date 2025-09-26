@@ -22,7 +22,7 @@ The repository is organised as follows:
 
 ## 4. Getting started
 ### 4.1 Environment Setup
-Before building or running the project, you must configure your environment variables. The testbench requires QuestaSim simulator, so ensure the `QESTA_PATH` variable is set to your Questa installation directory.
+Before building or running the project, you must configure your environment variables. The testbench requires QuestaSim simulator, so ensure the `QUESTA_PATH` variable is set to your Questa installation directory.
 
 **tcsh**
 ```
@@ -39,6 +39,8 @@ We also provide two scripts to setup the project environment, source the one tha
 | --------------- | -----------------------|
 | **csh/tcsh**    | `source setup_env.csh` |
 | **bash/zsh/sh** | `source setup_env.sh`  |
+
+Some of the testbench utilities (compilation, simulation and regression scripts) use Python. Dependencies are listed in `requirements.txt`.
 
 ### 4.2. Compile C++ Reference Model
 Build the shared library `refmodel_csim_lib.so` used in the UVM testbench via DPI.
@@ -88,7 +90,17 @@ python3 ${SCRIPTS_DIR}/run_test.py --yaml sim_questa.yaml --test_name fpu_random
 Simulation logs can be found in the `output/` folder.
 
 #### Run a regression
-`fpu_reg_list` file contains the regression suite. Check the `testplan` for more details on the available tests.
+The regression suite is defined in the `simu/fpu_reg_list` file. Each line in this file specifies:
+- **Test Name:** The UVM test class to run.
+- **Number of Runs:** How many times to run that test, each one has a different randomly generated seed
+
+Edit this file to decrease/increase the number of runs. Example of 20 runs/test:
+```
+fpu_single_op_test 20
+fpu_random_test 20
+```
+
+Check the `testplan` for more details on the available tests.
 ```
 python3 ${SCRIPTS_DIR}/run_reg.py --yaml reg_questa.yaml --nthreads 3 --reg_list fpu_reg_list
 ```
@@ -96,12 +108,29 @@ Regression logs can be found in the `regression/` folder. To parse through them,
 ```
 scan_logs.pl -nowarn --pat ${PROJECT_DIR}/scripts/patterns/sim_patterns.pat --waiver ${PROJECT_DIR}/scripts/patterns/sim_waivers.pat regression/fpu_*_test_*.log
 ```
-### 4.2. Known Limitations
+
+> **Note:**
+> Some regression failures may currently be expected because of known bugs in the DUT. These are being tracked, check the [Known Issues](#42-known-issues-limitations) section to confirm whether it is a known bug or a new issue that should be reported.
+
+### 4.2. Known Issues Limitations
+#### Limitations
 * The current verification environment targets the CVA6 core exclusively.
 * `RMM`, `ROD`, and `DYN` rounding modes have not been fully verified.
 * Vector floating-point operations are not supported by the current testbench.
 * Only `FP32` and `FP64` formats are thoroughly tested. Other formats are verified only within `F2F` (float-to-float) conversion operations.
 * For `F2I` (float-to-integer) and `I2F` (integer-to-float) operations, only `INT32` and `INT64` integer formats are tested.
+
+#### Know CVFPU Issues
+| Open Issue                                                                               | Proposed PR (tested but not merged)                    |
+| -----------------------------------------------------------------------------------------| -------------------------------------------------------|
+| DivSqrt unit bug [#155](https://github.com/openhwgroup/cvfpu/issues/155)                 | [PR157](https://github.com/openhwgroup/cvfpu/pull/157) |
+| FP64 to INT32 flag bug [#154](https://github.com/openhwgroup/cvfpu/issues/154)           | None                                                   |
+| FP64 to INT32 sign extension bug [#145](https://github.com/openhwgroup/cvfpu/issues/145) | [PR147](https://github.com/openhwgroup/cvfpu/pull/147) |
+
+#### Known CVFPU UVM Testbench Issues
+There is a corner case involving a flush on the fly that generates a test failure. It is currently being investigated.
+- Test case: `fpu_op_group_test`
+- Seed: `1691171928`
 
 ### 4.3 Adding a new test
 For users who are not familiar with UVM, here are some simple steps to follow to create a new test to verify a new feature.
