@@ -1,0 +1,8 @@
+*.db
+*.bin
+*.log
+*.d
+*.so
+*.o
+transcript
+work/
