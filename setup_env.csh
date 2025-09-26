@@ -53,12 +53,15 @@ else
    setenv PERL5LIB "${PROJECT_DIR}/scripts/perl5"
 endif
 
+################################################
 # TOOLS
-# This is mainly used by the scan_log.pl tool
-echo $C_MSG">> Setting scripts"$C_RST
+################################################
+# Questasim
+setenv PATH ${QUESTA_PATH}/bin:$PATH
 
+#SCANLOGS
 setenv SCRIPTS $PROJECT_DIR/scripts
-prepend PATH ${SCRIPTS}
+setenv PATH ${SCRIPTS}:$PATH
 
 setenv TARGET_CFG    cv64a60ax
 setenv CVA6_REPO_DIR ${PROJECT_DIR}/modules/cva6
