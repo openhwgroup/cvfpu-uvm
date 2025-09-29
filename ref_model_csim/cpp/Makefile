@@ -34,9 +34,8 @@ BUILD_DIR    = build
 INCDIR_MPFR  = $(MPFR_DIR)/include
 LIBDIR_MPFR  = $(MPFR_DIR)/lib
 
-
-INCDIR_GMP   = $(MPFR_DIR)/include
-LIBDIR_GMP   = $(MPFR_DIR)/lib
+INCDIR_GMP   = $(GMP_DIR)/include
+LIBDIR_GMP   = $(GMP_DIR)/lib
 
 INCDIRS      = $(addprefix -I,. $(QUESTA_PATH)/include $(INCDIR_MPFR) $(INCDIR_GMP) $(INCDIR_SOFTFLOAT) $(INC_DIR))
 LIBDIRS      = $(addprefix -L,$(LIBDIR_MPFR) $(LIBDIR_GMP) $(LIBDIR_SOFTFLOAT))

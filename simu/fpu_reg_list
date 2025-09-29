@@ -1,6 +1,6 @@
-fpu_single_op_test 2
-fpu_random_test 2
-fpu_op_group_test 2
-fpu_fmt_single_op_test 2
-fpu_fmt_random_test 2
-fpu_fmt_op_group_test 2
+fpu_single_op_test 20
+fpu_random_test 20
+fpu_op_group_test 20
+fpu_fmt_single_op_test 20
+fpu_fmt_random_test 20
+fpu_fmt_op_group_test 20
