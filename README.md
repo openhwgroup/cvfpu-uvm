@@ -110,27 +110,14 @@ scan_logs.pl -nowarn --pat ${PROJECT_DIR}/scripts/patterns/sim_patterns.pat --wa
 ```
 
 > **Note:**
-> Some regression failures may currently be expected because of known bugs in the DUT. These are being tracked, check the [Known Issues](#42-known-issues-limitations) section to confirm whether it is a known bug or a new issue that should be reported.
+> Some regression failures may currently be expected because of known bugs in the DUT. These are being tracked, check [CVFPU Issues](https://github.com/openhwgroup/cvfpu/issues) section to confirm whether it is a known bug or a new issue that should be reported.
 
-### 4.2. Known Issues Limitations
-#### Limitations
+### 4.2. Known Limitations
 * The current verification environment targets the CVA6 core exclusively.
 * `RMM`, `ROD`, and `DYN` rounding modes have not been fully verified.
 * Vector floating-point operations are not supported by the current testbench.
 * Only `FP32` and `FP64` formats are thoroughly tested. Other formats are verified only within `F2F` (float-to-float) conversion operations.
 * For `F2I` (float-to-integer) and `I2F` (integer-to-float) operations, only `INT32` and `INT64` integer formats are tested.
-
-#### Know CVFPU Issues
-| Open Issue                                                                               | Proposed PR (tested but not merged)                    |
-| -----------------------------------------------------------------------------------------| -------------------------------------------------------|
-| DivSqrt unit bug [#155](https://github.com/openhwgroup/cvfpu/issues/155)                 | [PR157](https://github.com/openhwgroup/cvfpu/pull/157) |
-| FP64 to INT32 flag bug [#154](https://github.com/openhwgroup/cvfpu/issues/154)           | None                                                   |
-| FP64 to INT32 sign extension bug [#145](https://github.com/openhwgroup/cvfpu/issues/145) | [PR147](https://github.com/openhwgroup/cvfpu/pull/147) |
-
-#### Known CVFPU UVM Testbench Issues
-There is a corner case involving a flush on the fly that generates a test failure. It is currently being investigated.
-- Test case: `fpu_op_group_test`
-- Seed: `1691171928`
 
 ### 4.3 Adding a new test
 For users who are not familiar with UVM, here are some simple steps to follow to create a new test to verify a new feature.
