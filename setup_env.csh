@@ -41,7 +41,7 @@ echo $C_TOP">>>>>> Initializing Platform <<<<<<"$C_RST
 echo $C_MSG"Update all git submodules" $C_RST
 git submodule init
 git submodule sync
-git submodule update --init --recursive
+git submodule update --init --recursive --remote
 
 ################################################
 # Add the local path to the perl libraries

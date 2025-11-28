@@ -1,6 +1,8 @@
 [submodule "modules/core-v-verif"]
 	path = modules/core-v-verif
 	url = https://github.com/FondazioneChipsIT/core-v-verif.git
+	branch = chips-it
 [submodule "modules/cva6"]
 	path = modules/cva6
 	url = https://github.com/FondazioneChipsIT/cva6.git
+	branch = chips-it
