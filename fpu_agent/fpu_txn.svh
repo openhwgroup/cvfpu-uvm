@@ -81,11 +81,12 @@ class fpu_txn extends uvm_sequence_item;
     //-------------------------------------------------------------------------
     // Transaction configuration fields
     //-------------------------------------------------------------------------
-    rand fp_op_type_e [2:0]  m_fp_op_type;         // Class of floating point operands
-    rand fp_double_t [2:0]   m_fp_double_operands; // Double precision floating point operands
-    rand fp_single_t [2:0]   m_fp_single_operands; // Single precision floating point operands
+    //RG:array unpacked for VCS compatibility
+    rand fp_op_type_e   m_fp_op_type [2];         // Class of floating point operands
+    rand fp_double_t    m_fp_double_operands [2]; // Double precision floating point operands
+    rand fp_single_t    m_fp_single_operands [2]; // Single precision floating point operands
 
-    rand mant_cfg_e [2:0]          m_fp_mant_cfg;  // Mantissa type of each floating point operand 
+    rand mant_cfg_e           m_fp_mant_cfg [2];  // Mantissa type of each floating point operand 
     rand int                       m_op_group_cfg; // Operation group 
     rand int_type_cfg_e            m_int_op_type;  // Type of integer operands
     rand logic [CVA6Cfg.XLEN-1:0]  m_int_operand;  // Interger operands

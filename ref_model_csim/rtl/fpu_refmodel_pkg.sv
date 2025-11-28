@@ -42,6 +42,13 @@ package fpu_refmodel_pkg;
         byte     es;  // Exponent size of floating point number
     } env_t;
 
+  import uvm_pkg::*;
+  import fpu_common_pkg::*;
+  import ariane_pkg::*;
+
+  `include "uvm_macros.svh"
+  `include "fpu_refmodel.svh"
+
   import "DPI-C" function int dpi_fadd(output bit [CVA6Cfg.FLen-1:0] result,
                                         input  bit [CVA6Cfg.XLEN-1:0] op1,
                                         input  bit [CVA6Cfg.XLEN-1:0] op2,
@@ -129,11 +136,6 @@ package fpu_refmodel_pkg;
                                            input  mpfr_rnd_e             rounding_mode,
                                            input  env_t                  src_env,
                                            input  env_t                  dst_env);
-  import uvm_pkg::*;
-  import fpu_common_pkg::*;
-  import ariane_pkg::*;
-
-  `include "uvm_macros.svh"
-  `include "fpu_refmodel.svh"
+  
     
 endpackage

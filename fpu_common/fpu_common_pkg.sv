@@ -89,7 +89,7 @@ package fpu_common_pkg;
     // print fpu req
     function void print_fpu_req(fpu_req_t R, string S, uvm_verbosity verbosity);
         `uvm_info(S, $sformatf("OP=%0s, OP_A=%0x(x), OP_B=%0x(x), IMM=%0x(x), TID=%0x(x), FMT=%0d(d), RM=%0x(x)", 
-                                            R.data.operation,
+                                            R.data.operation.name(),
                                             R.data.operand_a, 
                                             R.data.operand_b, 
                                             R.data.imm, 

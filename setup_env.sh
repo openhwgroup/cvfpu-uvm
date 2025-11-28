@@ -52,7 +52,27 @@ else
 fi
 
 # TOOLS
-export PATH="${QUESTA_PATH}/bin:$PATH"
+case $1 in
+    questa)
+        GEN_PATH=$QUESTA_PATH
+        PATH="${QUESTA_PATH}/bin:$PATH"
+        ;;
+    xcelium)
+        GEN_PATH=$XLM_PATH
+        PATH="${XLM_PATH}/bin:$PATH"
+        ;;
+    vcs)
+        GEN_PATH=$VCS_PATH
+        export VCS_HOME=$VCS_PATH
+        PATH="${VCS_HOME}/linux64/bin:$PATH"
+        ;;
+    *)
+        echo "Invalid tool: $1"
+        ;;
+esac
+
+export GEN_PATH
+export PATH
 
 #SCANLOGS
 export SCRIPTS=$PROJECT_DIR/scripts

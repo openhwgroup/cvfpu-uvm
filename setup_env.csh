@@ -56,8 +56,25 @@ endif
 ################################################
 # TOOLS
 ################################################
-# Questasim
-setenv PATH ${QUESTA_PATH}/bin:$PATH
+switch ($1)
+    case questa:
+        setenv GEN_PATH $QUESTA_PATH
+        setenv PATH "${QUESTA_PATH}/bin:${PATH}"
+        breaksw
+    case xcelium:
+        setenv GEN_PATH $XLM_PATH
+        setenv PATH "${XLM_PATH}/bin:${PATH}"
+        breaksw
+    case vcs:
+        setenv GEN_PATH $VCS_PATH
+        setenv VCS_HOME $VCS_PATH
+        setenv PATH "${VCS_HOME}/linux64/bin:${PATH}"
+
+        breaksw
+    default:
+        echo "Invalid tool: $1"
+        breaksw
+endsw
 
 #SCANLOGS
 setenv SCRIPTS $PROJECT_DIR/scripts

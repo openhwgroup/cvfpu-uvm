@@ -1,0 +1,8 @@
+- tool: vcs
+  compile:
+    work_lib    : "work"
+    filelist    : "${PROJECT_DIR}/simu/bender_filelist.f"
+    comp_option : "-sverilog -timescale=1ns/1ps -full64 -debug_access+r -kdb +define+VCS +incdir+${PROJECT_DIR} -ntb_opts uvm"
+    top_entity  :  "top"
+  sim:
+    sim_option  : "-full64 -ntb_opts uvm -sv_lib ${PROJECT_DIR}/ref_model_csim/cpp/build/refmodel_csim_lib +NB_TXNS=10 +TIMEOUT=30000000"

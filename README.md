@@ -22,7 +22,7 @@ The repository is organised as follows:
 
 ## 4. Getting started
 ### 4.1 Environment Setup
-Before building or running the project, you must configure your environment variables. The testbench requires QuestaSim simulator, so ensure the `QUESTA_PATH` variable is set to your Questa installation directory.
+Before building or running the project, you must configure your environment variables. The testbench works with QuestaSim simulator, Xcelium and VCS so ensure the `QUESTA_PATH`, `XLM_PATH` or `VCS_PATH` variable is set to your installation directory.
 
 **tcsh**
 ```
@@ -37,8 +37,13 @@ We also provide two scripts to setup the project environment, source the one tha
 
 | Shell Type      | Command to Run         |
 | --------------- | -----------------------|
-| **csh/tcsh**    | `source setup_env.csh` |
-| **bash/zsh/sh** | `source setup_env.sh`  |
+| **csh/tcsh**    | `source setup_env.csh <tool>` |
+| **bash/zsh/sh** | `source setup_env.sh <tool>`  |
+
+where <tool> can be `questa`, `xcelium` or `vcs`.
+
+> **Note:**
+> The first part of these scripts performs a git update of the submodules. Check the correctness of the remote url in the `.gitmodules` file
 
 Some of the testbench utilities (compilation, simulation and regression scripts) use Python. Dependencies are listed in `requirements.txt`.
 
@@ -48,7 +53,8 @@ Build the shared library `refmodel_csim_lib.so` used in the UVM testbench via DP
 #### Dependencies
 The following dependencies need to be installed in the system:
 
-- **GMP** (GNU Multiple Precision Arithmetic Library)
+- **Bender** a dependency management tool for HW design projects. See https://github.com/pulp-platform/bender.git for information ans installation guide.
+- **GMP** (GNU Multiple Precision Arithmetic Library).
 - **MPFR** (Multiple Precision Floating-Point Reliable Library): Section [*2.1 How to Install*](https://www.mpfr.org/mpfr-current/mpfr.html) details the steps to follow to install the library, use preferably version **4.2.2**.
 
 Set GMP/MPFR directory path variables in the environment.
@@ -63,25 +69,24 @@ setenv MPFR_DIR <mpfr_dir_absolute_path>
 export GMP_DIR=<gmp_dir_absolute_path>
 export MPFR_DIR=<mpfr_dir_absolute_path>
 ```
-It is important to note that the reference model includes `dpiheader.h` file that is tool specific to QuestaSim.
 
 #### Compilation
 ```
 cd ./ref_model_csim/cpp/
-make
+make TOOL=<tool>
 ```
 
 ### 4.2. Build and run simulation 
 #### Compile testbench
 ```
 cd ${PROJECT_DIR}/simu/
-python3 ${SCRIPTS_DIR}/compile.py --yaml sim_questa.yaml
+python3 ${SCRIPTS_DIR}/compile.py --yaml sim_<tool>.yaml
 ```
 #### Run a test
 
-The number of transactions is set by the variable `+NB_TXNS` (passed as simulation option) in the `sim_questa.yaml` file. It is currently fixed to 10 000.
+The number of transactions is set by the variable `+NB_TXNS` (passed as simulation option) in the `sim_<tool>.yaml` file.
 ```
-python3 ${SCRIPTS_DIR}/run_test.py --yaml sim_questa.yaml --test_name <TEST_NAME> --seed <SEED> --debug <VERBOSITY>
+python3 ${SCRIPTS_DIR}/run_test.py --yaml sim_<tool>.yaml --test_name <TEST_NAME> --seed <SEED> --debug <VERBOSITY>
 ```
 For example
 ```
@@ -89,25 +94,49 @@ python3 ${SCRIPTS_DIR}/run_test.py --yaml sim_questa.yaml --test_name fpu_random
 ```
 Simulation logs can be found in the `output/` folder.
 
+The test runs in batch mode automatically but it can be run also using the GUI of the used tool.
+
+For example
+```
+python3 ${SCRIPTS_DIR}/run_test.py --yaml sim_xcelium.yaml --test_name fpu_random_test --seed 1 --debug UVM_LOW --batch 0
+```
+in this case the simulation will be managed by Simvision.
+
+It is also possible to create a post-simulation debug database with the `--dump` option and open the saved dataset with the GUI subsequently. It is useful especially in batch mode but it can be used also while running the simulation with the GUI
+
+```
+python3 ${SCRIPTS_DIR}/run_test.py --yaml sim_<tool>.yaml --test_name fpu_random_test --seed 1 --debug UVM_LOW --dump 1
+```
+will create a database file in the `output/<tool>_db/` folder that can be used later by mean of the command:
+```
+python3 ${SCRIPTS_DIR}/post_proc.py --tool <tool> --db_file <db_file_path>
+```
+> **Note:**
+>If VCS is the selected tool, the `VERDI_HOME` path must be configured as an environment variable, for a bash shell:
+```
+export VERDI_HOME=/path/to/Verdi
+```
+
 #### Run a regression
 The regression suite is defined in the `simu/fpu_reg_list` file. Each line in this file specifies:
 - **Test Name:** The UVM test class to run.
 - **Number of Runs:** How many times to run that test, each one has a different randomly generated seed
 
-Edit this file to decrease/increase the number of runs. Example of 20 runs/test:
+Edit this file to decrease/increase the number of runs. By default, 700 random regression tests are performed (there must be at least 2 lines in the file):
 ```
-fpu_single_op_test 20
-fpu_random_test 20
+fpu_random_test 350
+fpu_random_test 350
 ```
 
 Check the `testplan` for more details on the available tests.
 ```
-python3 ${SCRIPTS_DIR}/run_reg.py --yaml reg_questa.yaml --nthreads 3 --reg_list fpu_reg_list
+python3 ${SCRIPTS_DIR}/run_reg.py --yaml sim_<tool>.yaml --nthreads 3 --reg_list fpu_reg_list
 ```
 Regression logs can be found in the `regression/` folder. To parse through them, run the following script which will return result of the tests with either PASS or FAIL.
 ```
 scan_logs.pl -nowarn --pat ${PROJECT_DIR}/scripts/patterns/sim_patterns.pat --waiver ${PROJECT_DIR}/scripts/patterns/sim_waivers.pat regression/fpu_*_test_*.log
 ```
+The regression tests run automatically in batch mode and with the dump option enabled, so that the created database files can be found in the `regression/<tool>_db/` folder and used by mean of the `post_proc` command 
 
 > **Note:**
 > Some regression failures may currently be expected because of known bugs in the DUT. These are being tracked, check [CVFPU Issues](https://github.com/openhwgroup/cvfpu/issues) section to confirm whether it is a known bug or a new issue that should be reported.
@@ -201,6 +230,11 @@ Add the new test to the `fpu_test_pkg.sv` file.
 #### Step 4: Run the Test
 From the `simu/` directory, compile and run the simulation by following directions detailed in section [4.2](#42-known-limitations).
 
+As an example:
+```
+python3 ${SCRIPTS_DIR}/compile.py --yaml sim_xcelium.yaml
+python3 ${SCRIPTS_DIR}/run_test.py --yaml sim_xcelium.yaml --test_name my_feature_test --seed 1 --debug UVM_LOW --dump 1
+```
 ---
 
 #### Step 5: Check Results
@@ -208,5 +242,5 @@ Review the log file `my_feature_test_1.log` located in the `output/` directory f
 
 Open the waveform file if needed to inspect DUT behavior.
 ```
-visualizer example.db
+python3 ${SCRIPTS_DIR}/post_proc.py --tool xcelium --db_file ./output/xlm_db/my_feature_test_1.shm 
 ```

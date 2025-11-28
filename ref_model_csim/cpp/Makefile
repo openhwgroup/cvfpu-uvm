@@ -37,13 +37,32 @@ LIBDIR_MPFR  = $(MPFR_DIR)/lib
 INCDIR_GMP   = $(GMP_DIR)/include
 LIBDIR_GMP   = $(GMP_DIR)/lib
 
-INCDIRS      = $(addprefix -I,. $(QUESTA_PATH)/include $(INCDIR_MPFR) $(INCDIR_GMP) $(INCDIR_SOFTFLOAT) $(INC_DIR))
+
+
+INCDIRS      = $(addprefix -I,. $(GEN_PATH)/include $(INCDIR_MPFR) $(INCDIR_GMP) $(INCDIR_SOFTFLOAT) $(INC_DIR))
 LIBDIRS      = $(addprefix -L,$(LIBDIR_MPFR) $(LIBDIR_GMP) $(LIBDIR_SOFTFLOAT))
 LIBDIRS     += -Wl,-rpath,$(LIBDIR_MPFR)
 LIBDIRS     += -Wl,-rpath,$(LIBDIR_GMP)
 LIBDIRS     += -Wl,-rpath,$(LIBDIR_SOFTFLOAT)
 
 CXXFLAGS     = -std=c++11 -fPIC -Wall $(INCDIRS)
+
+# ==========================
+# TOOL SELECTION LOGIC
+# ==========================
+ifeq ($(TOOL),questa)
+    CXXFLAGS += -DUSE_QUESTA
+    MSG = "Compiling with QuestaSim environment"
+else ifeq ($(TOOL),xcelium)
+    CXXFLAGS += -DUSE_XCELIUM
+    MSG = "Compiling with Xcelium environment"
+else ifeq ($(TOOL), vcs)
+	CXXFLAGS += -DUSE_VCS
+    MSG = "Compiling with VCS environment"
+else
+    $(error Please specify TOOL=questa or TOOL=xcelium or TOOL=VCS)
+endif
+
 LDFLAGS      = -m64 -shared -fPIC -Bsymbolic $(LIBDIRS)
 LIBS         = -lm -lgmp -lmpfr
 TARGET_LIB   = $(BUILD_DIR)/refmodel_csim_lib.so
