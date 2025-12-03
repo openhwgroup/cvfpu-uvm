@@ -1,11 +1,11 @@
 package:
   name: cvfpu-uvm
   authors:
-    - "Riccardo Giunti (riccardo.giunti@chips.it)"
+    - "Riccardo Giunti"
 
 dependencies:
-  cva6        : { git: "https://github.com/FondazioneChipsIT/cva6.git", rev: chips-it}
-  core-v-verif: { git: "https://github.com/FondazioneChipsIT/core-v-verif.git", rev: chips-it}
+  cva6        : { git: "https://github.com/openhwgroup/cva6.git", rev: master}
+  core-v-verif: { git: "https://github.com/openhwgroup/core-v-verif.git", rev: master}
 
 sources:
   -
