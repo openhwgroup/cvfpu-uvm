@@ -6,8 +6,8 @@ package:
     - "Riccardo Giunti"
 
 dependencies:
-  cva6        : { git: "https://github.com/openhwgroup/cva6.git", rev: master}
-  core-v-verif: { git: "https://github.com/openhwgroup/core-v-verif.git", rev: master}
+  cva6        : { git: "https://github.com/FondazioneChipsIT/cva6.git", rev: rgiunti/fix-cvfpu-uvm-pkg-OpenHW}
+  core-v-verif: { git: "https://github.com/openhwgroup/core-v-verif.git", rev: 13a6c80} # branch master
 
 sources:
   -
