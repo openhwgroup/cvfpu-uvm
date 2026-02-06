@@ -1,0 +1,12 @@
+# Copyright 2025 Fondazione Chips-IT
+# SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+
+- tool: xcelium
+  compile:
+    work_lib     : "work"
+    filelist     : "${PROJECT_DIR}/simu/bender_filelist.f"
+    comp_option  : "-64bit -errormax 1 -nowarn UEXPSC -nowarn SPDUSD -nowarn NOINUF -nowarn FUNTSK +incdir+${PROJECT_DIR} -uvm -define XCELIUM"
+    elab_option  :  "-64bit -access +rwc -errormax 1 -timescale 1ns/1ps -nowarn CUVUKP +incdir+${PROJECT_DIR} -uvm"
+    top_entity   :  "top"
+  sim:
+    sim_option   : "work.top:sv -createdebugdb -reflib work -64bit -uvm -access +rwc -sv_lib ${PROJECT_DIR}/ref_model_csim/cpp/build/refmodel_csim_lib +NB_TXNS=10000 +TIMEOUT=30000000"

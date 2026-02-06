@@ -1,0 +1,30 @@
+# Copyright 2025 Fondazione Chips-IT
+# SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+package:
+  name: cvfpu-uvm
+  authors:
+    - "Riccardo Giunti"
+
+dependencies:
+  cva6        : { git: "https://github.com/openhwgroup/cva6.git", rev: 3868a61} # branch master
+  core-v-verif: { git: "https://github.com/openhwgroup/core-v-verif.git", rev: 13a6c80} # branch master
+
+sources:
+  -
+    include_dirs:
+      - fpu_common
+      - fpu_agent
+      - ref_model_csim/rtl
+      - env
+      - tests
+    files:
+      - fpu_common/fpu_common_pkg.sv
+      - fpu_agent/fpu_agent_pkg.sv
+      - fpu_agent/fpu_if.sv
+      - ref_model_csim/rtl/fpu_refmodel_pkg.sv
+      - env/fpu_env_pkg.sv
+      - tests/fpu_test_pkg.sv
+      - top/rtl/tb_top.sv
+      
+
+  

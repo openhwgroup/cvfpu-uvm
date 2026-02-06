@@ -1,6 +1,8 @@
 [submodule "modules/core-v-verif"]
 	path = modules/core-v-verif
 	url = https://github.com/openhwgroup/core-v-verif.git
+	branch = master
 [submodule "modules/cva6"]
 	path = modules/cva6
 	url = https://github.com/openhwgroup/cva6.git
+	branch = master
