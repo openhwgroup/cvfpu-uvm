@@ -222,13 +222,13 @@ class fpu_txn extends uvm_sequence_item;
     function void post_randomize();
         // NaN Boxing
         // Set all unused high-order bits of narrow formats to '1, 
-        // otherwise the value is considered invalid (a NaN)
+        // otherwise the value is considered a canonical NaN
         int unsigned FP_WIDTH  = m_operation == FCVT_F2F ? fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(m_imm[1:0])) : fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(m_fmt));
         logic [CVA6Cfg.XLEN-1:0] all_ones = ('1) << FP_WIDTH;
         
-        m_operand_a = m_nan_box ? m_operand_a & ((1 << FP_WIDTH) - 1) | all_ones : m_operand_a;
-        m_operand_b = m_nan_box ? m_operand_b & ((1 << FP_WIDTH) - 1) | all_ones : m_operand_b;
-        m_imm       = m_nan_box ? m_imm       & ((1 << FP_WIDTH) - 1) | all_ones : m_imm;
+        m_operand_a = m_nan_box ? (m_operand_a & ((1 << FP_WIDTH) - 1) | all_ones) : m_operand_a;
+        m_operand_b = m_nan_box ? (m_operand_b & ((1 << FP_WIDTH) - 1) | all_ones) : m_operand_b;
+        m_imm       = m_nan_box ? (m_imm       & ((1 << FP_WIDTH) - 1) | all_ones) : m_imm;
 
     endfunction
 

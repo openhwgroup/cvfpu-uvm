@@ -81,9 +81,9 @@ class fpu_refmodel extends uvm_object;
     op2_is_boxed = ((op2 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
     op3_is_boxed = ((op3 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
 
-    op1 = op1_is_boxed || (operator == FMV_X2F) ? op1 : set_to_qNan(src_fp_fmt, op1);
-    op2 = op2_is_boxed || (operator == FMV_X2F) ? op2 : set_to_qNan(src_fp_fmt, op2);
-    op3 = op3_is_boxed || (operator == FMV_X2F) ? op3 : set_to_qNan(src_fp_fmt, op3);
+    op1 = (op1_is_boxed || (operator == FMV_X2F)) ? op1 : set_to_qNan(src_fp_fmt, op1);
+    op2 = (op2_is_boxed || (operator == FMV_X2F)) ? op2 : set_to_qNan(src_fp_fmt, op2);
+    op3 = (op3_is_boxed || (operator == FMV_X2F)) ? op3 : set_to_qNan(src_fp_fmt, op3);
     
     `uvm_info("FPU_REF_MODEL", 
               $sformatf("TXN INFO: OP=%0s, OP1=%0h (h), OP2=%0h (h), OP3=%0h (h), RND=%0h (h), BIS=%0d (d), ES=%0d (d)", 
@@ -115,7 +115,7 @@ class fpu_refmodel extends uvm_object;
     do_nothing      = (operator == FCMP    ) || (operator == FCLASS);
 
     DST_FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(txn.fmt));
-    all_ones = ('1) << DST_FP_WIDTH;
+    all_ones = {CVA6Cfg.FLen{1'b1}} << DST_FP_WIDTH;
 
     if (do_nothing || sign_extend_res) begin
       m_expected_result = exp_result;
