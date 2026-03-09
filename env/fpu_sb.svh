@@ -39,7 +39,6 @@ class fpu_sb extends uvm_scoreboard;
     uvm_tlm_analysis_fifo #(fpu_rsp_t) af_fpu_rsp;
 
     fpu_req_t q_fpu_req[ logic [CVA6Cfg.TRANS_ID_BITS-1:0] ];
-    fpu_rsp_t q_fpu_rsp[ logic [CVA6Cfg.TRANS_ID_BITS-1:0] ];
 
     // -------------------------------------------------------------------------
     // Events to handle reset
@@ -99,7 +98,6 @@ class fpu_sb extends uvm_scoreboard;
       super.reset_phase(phase);
       
       q_fpu_req.delete();
-      q_fpu_rsp.delete();
       m_sequencer.q_inflight_tid.delete();
 
       req_cnt = 0;
@@ -140,7 +138,6 @@ class fpu_sb extends uvm_scoreboard;
 
         // Empty all lists
         q_fpu_req.delete();
-        q_fpu_rsp.delete();
         m_sequencer.q_inflight_tid.delete();
       end
     endtask 

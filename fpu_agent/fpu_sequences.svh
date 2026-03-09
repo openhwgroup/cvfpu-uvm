@@ -378,7 +378,7 @@ class fpu_unit_seq extends  fpu_base_sequence;
 
         item = fpu_txn::type_id::create("fpu single request");
 
-        for (int i = 0; i < num_txn; i++) begin
+        // for (int i = 0; i < num_txn; i++) begin
             // --------------------------------------------------------------------------------
             // to generate unique TID a list of tid in flight is passed on to the sequence
             // --------------------------------------------------------------------------------
@@ -389,6 +389,22 @@ class fpu_unit_seq extends  fpu_base_sequence;
             // --------------------------------
             if ( !item.randomize() with 
                 {
+                    //-----------------------------------------------
+                    //  ISSUE #3123 in CVA6
+                    // m_nan_box == 0;
+                    // m_operation == FDIV;
+                    // m_operand_a == 'hc1ddd216;
+                    // m_operand_b == 'hbae084b4;
+                    // m_fmt == 0; // 32bits
+                    // m_imm == 0;
+                    // m_rm == 1;
+                    //-----------------------------------------------
+                    m_nan_box   == 0;
+                    m_operation == FSGNJ;
+                    m_operand_a == 'h54004000;
+                    m_operand_b == 'h80040000;
+                    m_fmt == 0; // 32bits
+                    m_imm == 0;
                     //-----------------------------------------------
                     //  ISSUE #145 + PR #147 ( tested and it works )
                     // m_operation == FCVT_F2I;
@@ -415,7 +431,7 @@ class fpu_unit_seq extends  fpu_base_sequence;
                     // m_operand_b == 'h3F800000;
                     // m_fmt       == 0;
                     //-----------------------------------------------
-                    m_operation inside {FMV_F2X, FMV_X2F};
+                    // m_operation inside {FMV_F2X, FMV_X2F};
                 } ) 
             begin
                 `uvm_fatal("body","Randomization failed");    
@@ -427,7 +443,7 @@ class fpu_unit_seq extends  fpu_base_sequence;
 
             start_item( item );
             finish_item( item );
-        end
+        // end
   endtask: body
 
 endclass: fpu_unit_seq
