@@ -47,7 +47,6 @@ class fpu_single_op_test extends base_test;
       ariane_pkg::fu_op operation;
 
 	    std::randomize(operation) with { operation inside {FADD, FSUB, FMUL, FDIV, FSQRT, FMADD, FMSUB, FCMP, FMIN_MAX, FSGNJ, FCLASS, FCVT_I2F, FCVT_F2F, FNMADD, FNMSUB, FCVT_F2I, FMV_X2F, FMV_F2X} ; };
-	    // std::randomize(operation) with { operation inside {FMUL} ; };
 
       // Create new sequence
       m_seq = fpu_single_op_seq::type_id::create("seq");

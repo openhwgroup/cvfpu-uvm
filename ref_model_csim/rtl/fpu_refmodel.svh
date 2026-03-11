@@ -49,9 +49,11 @@ class fpu_refmodel extends uvm_object;
     env_t                             src_env, dst_env;
     bit                               is_signed;
     bit                               int_format;
-    int unsigned                      INT_WIDTH, FP_WIDTH;
-    logic [CVA6Cfg.FLen-1:0]          int_mask, all_ones;
+    logic [2:0]                       src_fp_fmt;
+    int unsigned                      INT_WIDTH, SRC_FP_WIDTH, DST_FP_WIDTH;
+    logic [CVA6Cfg.FLen-1:0]          int_mask, all_ones, fp_mask;
     bit                               do_nothing, sign_extend_res;
+    bit                               op1_is_boxed, op2_is_boxed, op3_is_boxed;
 
     print_fpu_req(txn, "FPU_REF_MODEL_REQ", UVM_HIGH);
     
@@ -68,7 +70,20 @@ class fpu_refmodel extends uvm_object;
     INT_WIDTH = int_format ? 64 : 32;
     int_mask  = (1 << INT_WIDTH) - 1;
 
-    FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(txn.fmt));
+    src_fp_fmt = operator == FCVT_F2F ? op3[2:0] : txn.fmt;
+
+    SRC_FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(src_fp_fmt));
+
+    fp_mask  = (1 << SRC_FP_WIDTH) - 1;
+
+    // NaN-box check
+    op1_is_boxed = ((op1 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
+    op2_is_boxed = ((op2 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
+    op3_is_boxed = ((op3 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
+
+    op1 = (op1_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op1 : set_to_qNan(src_fp_fmt, op1);
+    op2 = (op2_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op2 : set_to_qNan(src_fp_fmt, op2);
+    op3 = (op3_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op3 : set_to_qNan(src_fp_fmt, op3);
     
     `uvm_info("FPU_REF_MODEL", 
               $sformatf("TXN INFO: OP=%0s, OP1=%0h (h), OP2=%0h (h), OP3=%0h (h), RND=%0h (h), BIS=%0d (d), ES=%0d (d)", 
@@ -98,16 +113,18 @@ class fpu_refmodel extends uvm_object;
 
     sign_extend_res = (operator == FCVT_F2I) || (operator == FMV_F2X);
     do_nothing      = (operator == FCMP    ) || (operator == FCLASS);
-    all_ones = ('1) << FP_WIDTH;
+
+    DST_FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(txn.fmt));
+    all_ones = {CVA6Cfg.FLen{1'b1}} << DST_FP_WIDTH;
 
     if (do_nothing || sign_extend_res) begin
       m_expected_result = exp_result;
     end else begin
     // NaN-box result
-      m_expected_result = exp_result & ((1 << FP_WIDTH) - 1) | all_ones;            
+      m_expected_result = exp_result & ((1 << DST_FP_WIDTH) - 1) | all_ones;
     end
     
-   `uvm_info("FPU_REF_MODEL_RSP", $sformatf("RESULT=%0x(x), FLAGS= %0x", m_expected_result, m_flags), UVM_HIGH);  
+   `uvm_info("FPU_REF_MODEL_RSP", $sformatf("RESULT=%0x(x), FLAGS= %0x", m_expected_result, m_flags), UVM_HIGH);
   endfunction
 
   // -----------------------------------------------------------
@@ -150,6 +167,45 @@ class fpu_refmodel extends uvm_object;
     endcase
 
     return env;
+  endfunction
+
+  // -----------------------------------------------------------
+  // Set operand to qNaN
+  // -----------------------------------------------------------
+  function bit [CVA6Cfg.XLEN-1:0] set_to_qNan (input logic [2:0] fmt, input bit [CVA6Cfg.XLEN-1:0] op);
+    bit [CVA6Cfg.XLEN-1:0] res;
+
+    res = {CVA6Cfg.XLEN{1'b1}};
+    
+    if (CVA6Cfg.XLEN == 32) begin
+      unique case (fmt)
+        // FP32 (single precision)
+        3'b000: res = op;
+        // FP16 (half precision)
+        3'b010: res[15:0] = 'h7E00;
+        // FP16ALT (half precision)
+        3'b110: res[15:0] = 'h7FC0;
+        // FP8
+        3'b011: res[7:0] = 'h7E;
+        default: `uvm_error("FPU_REF_MODEL", "Unsupported format")
+      endcase
+    end else if (CVA6Cfg.XLEN == 64) begin
+      unique case (fmt)
+        // FP32 (single precision)
+        3'b000: res[31:0] = 'h7FC00000;
+        // FP64 (double precision)
+        3'b001: res = op;
+        // FP16 (half precision)
+        3'b010: res[15:0] = 'h7E00;
+        // FP16ALT (half precision)
+        3'b110: res[15:0] = 'h7FC0;
+        // FP8
+        3'b011: res[7:0] = 'h7E;
+        default: `uvm_error("FPU_REF_MODEL", "Unsupported format")
+      endcase
+    end
+    
+    return res;
   endfunction
 
 endclass: fpu_refmodel

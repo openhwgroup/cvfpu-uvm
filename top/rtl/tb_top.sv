@@ -81,7 +81,8 @@ module top;
         .fpu_trans_id_o  ( fpu_vif.fpu_trans_id_o ),
         .result_o        ( fpu_vif.result_o       ),
         .fpu_valid_o     ( fpu_vif.fpu_valid_o    ),
-        .fpu_exception_o ( fpu_vif.fpu_exception_o )
+        .fpu_exception_o ( fpu_vif.fpu_exception_o ),
+        .fpu_early_valid_o (/*OPEN*/)
     );
 
     initial begin

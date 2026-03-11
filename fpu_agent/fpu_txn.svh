@@ -86,10 +86,11 @@ class fpu_txn extends uvm_sequence_item;
     rand fp_double_t    m_fp_double_operands [2:0]; // Double precision floating point operands
     rand fp_single_t    m_fp_single_operands [2:0]; // Single precision floating point operands
 
-    rand mant_cfg_e           m_fp_mant_cfg [2:0];  // Mantissa type of each floating point operand 
-    rand int                       m_op_group_cfg; // Operation group 
-    rand int_type_cfg_e            m_int_op_type;  // Type of integer operands
-    rand logic [CVA6Cfg.XLEN-1:0]  m_int_operand;  // Interger operands
+    rand mant_cfg_e                m_fp_mant_cfg [2:0];  // Mantissa type of each floating point operand 
+    rand int                       m_op_group_cfg;       // Operation group 
+    rand int_type_cfg_e            m_int_op_type;        // Type of integer operands
+    rand logic [CVA6Cfg.XLEN-1:0]  m_int_operand;        // Interger operands
+    rand bit                       m_nan_box; 
 
     // -------------------------------------------------------------------------
     // Randomization Constraints
@@ -140,6 +141,7 @@ class fpu_txn extends uvm_sequence_item;
     constraint double_mant_c {
         foreach (m_fp_op_type[i]) {
             m_fp_op_type[i] inside {ZERO, INF}         -> m_fp_double_operands[i].mantissa == '0;
+            m_fp_op_type[i] inside {QNAN}              -> m_fp_double_operands[i].mantissa != '0;
             m_fp_op_type[i] inside {SNAN}              -> m_fp_double_operands[i].mantissa[FP64_MAN_BITS-1] == 1'b0;
             m_fp_op_type[i] inside {SUBNORMAL, NORMAL} -> {
                 (m_fp_mant_cfg[i] == ALL_ZEROS)    ->  m_fp_double_operands[i].mantissa == '0;
@@ -153,6 +155,7 @@ class fpu_txn extends uvm_sequence_item;
     constraint single_mant_c {
         foreach (m_fp_op_type[i]) {
             m_fp_op_type[i] inside {ZERO, INF}         -> m_fp_single_operands[i].mantissa == '0;
+            m_fp_op_type[i] inside {QNAN}              -> m_fp_single_operands[i].mantissa != '0;
             m_fp_op_type[i] inside {SNAN}              -> m_fp_single_operands[i].mantissa[FP32_MAN_BITS-1] == 1'b0;
             m_fp_op_type[i] inside {SUBNORMAL, NORMAL} -> {
                 (m_fp_mant_cfg[i] == ALL_ZEROS)    ->  m_fp_single_operands[i].mantissa == '0;
@@ -199,7 +202,7 @@ class fpu_txn extends uvm_sequence_item;
     // RMM -> Not supported by MPFR library
     constraint rm_c { m_rm <= 3; }
 
-    constraint rm_fcmp_c { (m_operation == FCMP) -> m_rm <= 2; }
+    constraint rm_fcmp_c { m_operation inside {FSGNJ, FCMP} -> m_rm <= 2; }
     
     constraint rm_fmv_c { (m_operation inside {FMV_F2X, FMV_X2F}) -> m_rm == 3; }
 
@@ -214,16 +217,19 @@ class fpu_txn extends uvm_sequence_item;
 
     constraint m_req_tid_c   { !(m_trans_id inside {q_inflight_tid});}
 
+    constraint m_nan_box_c { m_nan_box dist { 1 := 90, 0 := 10 }; }
+
     function void post_randomize();
         // NaN Boxing
         // Set all unused high-order bits of narrow formats to '1, 
-        // otherwise the value is considered invalid (a NaN)
+        // otherwise the value is considered a canonical NaN
         int unsigned FP_WIDTH  = m_operation == FCVT_F2F ? fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(m_imm[1:0])) : fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(m_fmt));
         logic [CVA6Cfg.XLEN-1:0] all_ones = ('1) << FP_WIDTH;
         
-        m_operand_a = m_operand_a & ((1 << FP_WIDTH) - 1) | all_ones;
-        m_operand_b = m_operand_b & ((1 << FP_WIDTH) - 1) | all_ones;
-        m_imm       = m_imm & ((1 << FP_WIDTH) - 1) | all_ones;
+        m_operand_a = m_nan_box ? (m_operand_a & ((1 << FP_WIDTH) - 1) | all_ones) : m_operand_a;
+        m_operand_b = m_nan_box ? (m_operand_b & ((1 << FP_WIDTH) - 1) | all_ones) : m_operand_b;
+        m_imm       = m_nan_box ? (m_imm       & ((1 << FP_WIDTH) - 1) | all_ones) : m_imm;
+
     endfunction
 
     // -------------------------------------------------------------------------
