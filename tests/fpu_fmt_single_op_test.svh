@@ -47,7 +47,7 @@ class fpu_fmt_single_op_test extends base_test;
       ariane_pkg::fu_op operation;
       logic [1:0]       fmt;
 
-	    std::randomize(operation) with { operation inside {FADD, FSUB, FMUL, FDIV, FSQRT, FMADD, FMSUB, FCMP, FMIN_MAX, FSGNJ, FCLASS, FCVT_I2F, FCVT_F2F, FNMADD, FNMSUB, FMV_X2F, FMV_F2X} ; }; // Remove FCVT_F2I until bug is fixed
+	    std::randomize(operation) with { operation inside {FADD, FSUB, FMUL, FDIV, FSQRT, FMADD, FMSUB, FCMP, FMIN_MAX, FSGNJ, FCLASS, FCVT_I2F, FCVT_F2F, FNMADD, FNMSUB, FCVT_F2I, FMV_X2F, FMV_F2X} ; };
       
       fmt = $urandom_range(1); // Generate random format FP32/FP64
 

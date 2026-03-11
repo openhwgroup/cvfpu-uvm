@@ -81,9 +81,9 @@ class fpu_refmodel extends uvm_object;
     op2_is_boxed = ((op2 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
     op3_is_boxed = ((op3 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
 
-    op1 = (op1_is_boxed || (operator == FMV_X2F)) ? op1 : set_to_qNan(src_fp_fmt, op1);
-    op2 = (op2_is_boxed || (operator == FMV_X2F)) ? op2 : set_to_qNan(src_fp_fmt, op2);
-    op3 = (op3_is_boxed || (operator == FMV_X2F)) ? op3 : set_to_qNan(src_fp_fmt, op3);
+    op1 = (op1_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op1 : set_to_qNan(src_fp_fmt, op1);
+    op2 = (op2_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op2 : set_to_qNan(src_fp_fmt, op2);
+    op3 = (op3_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op3 : set_to_qNan(src_fp_fmt, op3);
     
     `uvm_info("FPU_REF_MODEL", 
               $sformatf("TXN INFO: OP=%0s, OP1=%0h (h), OP2=%0h (h), OP3=%0h (h), RND=%0h (h), BIS=%0d (d), ES=%0d (d)", 
@@ -174,19 +174,36 @@ class fpu_refmodel extends uvm_object;
   // -----------------------------------------------------------
   function bit [CVA6Cfg.XLEN-1:0] set_to_qNan (input logic [2:0] fmt, input bit [CVA6Cfg.XLEN-1:0] op);
     bit [CVA6Cfg.XLEN-1:0] res;
+
+    res = {CVA6Cfg.XLEN{1'b1}};
     
-    unique case (fmt)
-      // FP32 (single precision)
-      3'b000: res = 64'hFFFF_FFFF_7FC0_0000;
-      // FP64 (double precision)
-      3'b001: res = op; 
-      // FP16 (half precision)
-      3'b010: res = 64'hFFFF_FFFF_FFFF_7E00;
-      // FP16ALT (half precision)
-      3'b110: res = 64'hFFFF_FFFF_FFFF_7FC0;
-      // FP8
-      3'b011: res = 64'hFFFF_FFFF_FFFF_FF7E;
-    endcase
+    if (CVA6Cfg.XLEN == 32) begin
+      unique case (fmt)
+        // FP32 (single precision)
+        3'b000: res = op;
+        // FP16 (half precision)
+        3'b010: res[15:0] = 'h7E00;
+        // FP16ALT (half precision)
+        3'b110: res[15:0] = 'h7FC0;
+        // FP8
+        3'b011: res[7:0] = 'h7E;
+        default: `uvm_error("FPU_REF_MODEL", "Unsupported format")
+      endcase
+    end else if (CVA6Cfg.XLEN == 64) begin
+      unique case (fmt)
+        // FP32 (single precision)
+        3'b000: res[31:0] = 'h7FC00000;
+        // FP64 (double precision)
+        3'b001: res = op;
+        // FP16 (half precision)
+        3'b010: res[15:0] = 'h7E00;
+        // FP16ALT (half precision)
+        3'b110: res[15:0] = 'h7FC0;
+        // FP8
+        3'b011: res[7:0] = 'h7E;
+        default: `uvm_error("FPU_REF_MODEL", "Unsupported format")
+      endcase
+    end
     
     return res;
   endfunction
