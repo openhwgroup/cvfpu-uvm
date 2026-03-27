@@ -70,20 +70,20 @@ class fpu_refmodel extends uvm_object;
     INT_WIDTH = int_format ? 64 : 32;
     int_mask  = (1 << INT_WIDTH) - 1;
 
-    src_fp_fmt = operator == FCVT_F2F ? op3[2:0] : txn.fmt;
+    src_fp_fmt = operator == FCVT_F2F ? txn.data.imm[2:0] : txn.fmt;
 
     SRC_FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(src_fp_fmt));
 
-    fp_mask  = (1 << SRC_FP_WIDTH) - 1;
+    fp_mask  = (1 << (CVA6Cfg.XLEN - SRC_FP_WIDTH)) - 1;
 
     // NaN-box check
     op1_is_boxed = ((op1 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
     op2_is_boxed = ((op2 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
     op3_is_boxed = ((op3 & fp_mask<<SRC_FP_WIDTH) >> SRC_FP_WIDTH) == fp_mask;
 
-    op1 = (op1_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op1 : set_to_qNan(src_fp_fmt, op1);
-    op2 = (op2_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op2 : set_to_qNan(src_fp_fmt, op2);
-    op3 = (op3_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op3 : set_to_qNan(src_fp_fmt, op3);
+    op1 = (op1_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op1 : set_to_cNan(src_fp_fmt, op1);
+    op2 = (op2_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op2 : set_to_cNan(src_fp_fmt, op2);
+    op3 = (op3_is_boxed || (operator inside {FMV_X2F, FMV_F2X, FCVT_I2F})) ? op3 : set_to_cNan(src_fp_fmt, op3);
     
     `uvm_info("FPU_REF_MODEL", 
               $sformatf("TXN INFO: OP=%0s, OP1=%0h (h), OP2=%0h (h), OP3=%0h (h), RND=%0h (h), BIS=%0d (d), ES=%0d (d)", 
@@ -170,9 +170,9 @@ class fpu_refmodel extends uvm_object;
   endfunction
 
   // -----------------------------------------------------------
-  // Set operand to qNaN
+  // Set operand to canonical NaN
   // -----------------------------------------------------------
-  function bit [CVA6Cfg.XLEN-1:0] set_to_qNan (input logic [2:0] fmt, input bit [CVA6Cfg.XLEN-1:0] op);
+  function bit [CVA6Cfg.XLEN-1:0] set_to_cNan (input logic [2:0] fmt, input bit [CVA6Cfg.XLEN-1:0] op);
     bit [CVA6Cfg.XLEN-1:0] res;
 
     res = {CVA6Cfg.XLEN{1'b1}};
