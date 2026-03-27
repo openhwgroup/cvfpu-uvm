@@ -43,6 +43,7 @@ class fpu_agent extends uvm_agent;
     fpu_monitor   m_monitor;
 
     virtual fpu_if fpu_vif;
+    virtual pulse_if flush_vif;
     
     // -------------------------------------------------------------------------
     // Constructor
@@ -65,7 +66,11 @@ class fpu_agent extends uvm_agent;
         end
 
         if (!uvm_config_db #( virtual fpu_if)::get(this, "", "fpu_vif", fpu_vif )) begin
-            `uvm_fatal("BUILD_PHASE", $psprintf("Unable to get fpu_vif_config for %s from configuration database", get_name() ) );
+            `uvm_fatal("BUILD_PHASE", $psprintf("Unable to get fpu_vif for %s from configuration database", get_name() ) );
+        end
+
+        if (!uvm_config_db #( virtual pulse_if)::get(this, "", "flush_driver", flush_vif )) begin
+            `uvm_fatal("BUILD_PHASE", $psprintf("Unable to get flush_driver for %s from configuration database", get_name() ) );
         end
 
         `uvm_info(get_full_name( ), "Build stage complete.", UVM_LOW)
@@ -77,10 +82,13 @@ class fpu_agent extends uvm_agent;
     function void connect_phase(uvm_phase phase);
         if(is_active == UVM_ACTIVE) begin
             m_driver.seq_item_port.connect(m_sequencer.seq_item_export);
+            m_monitor.ap_flush.connect(m_sequencer.flush_export);
             m_driver.set_fpu_vif(fpu_vif);
+            m_driver.set_flush_vif(flush_vif);
             m_monitor.m_sequencer = m_sequencer; 
         end
         m_monitor.set_fpu_vif(fpu_vif);
+        m_monitor.set_flush_vif(flush_vif);
         `uvm_info(get_full_name( ), "Connect stage complete.", UVM_LOW)
     endfunction: connect_phase
 
