@@ -7,7 +7,7 @@ package:
 
 dependencies:
   cva6        : { git: "https://github.com/openhwgroup/cva6.git", rev: 3868a61} # branch master
-  core-v-verif: { git: "https://github.com/openhwgroup/core-v-verif.git", rev: 13a6c80} # branch master
+  core-v-verif: { git: "https://github.com/openhwgroup/core-v-verif.git", rev: master}
 
 sources:
   -

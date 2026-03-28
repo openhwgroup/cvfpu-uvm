@@ -156,7 +156,7 @@ class base_test extends uvm_test;
         // ---------------------------------------
         begin: FLUSH_THREAD
           `uvm_info(get_full_name(), "Inside flush thread", UVM_HIGH)
-          if ( env.m_fpu_top_cfg.get_flush_on_the_fly() && env.m_flush_driver.m_pulse_cnt < 1) begin
+          if ( env.m_fpu_top_cfg.get_flush_on_the_fly() && env.m_flush_driver.get_pulse_cnt() < 1) begin
             // Block until a flush is detected
             @(env.m_flush_driver.pulse_fired);
           end else begin
