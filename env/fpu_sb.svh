@@ -74,9 +74,6 @@ class fpu_sb extends uvm_scoreboard;
       af_fpu_rsp = new("af_fpu_rsp", this);
       af_flush = new("af_flush", this);
 
-      if (!$value$plusargs("NB_TXNS=%d", num_txn )) begin
-        num_txn = 10000;
-      end
     endfunction: new
 
     // -------------------------------------------------------------------------
@@ -126,11 +123,14 @@ class fpu_sb extends uvm_scoreboard;
     // -------------------------------------------------------------------------
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      fork
-        collect_fpu_req();
-        collect_fpu_resp();
-        flush_env();
-      join_none
+      forever begin
+        fork
+          collect_fpu_req();
+          collect_fpu_resp();
+          flush_env();
+        join_any
+        disable fork;
+      end
     endtask: main_phase
 
     // -------------------------------------------------------------------------
@@ -139,17 +139,14 @@ class fpu_sb extends uvm_scoreboard;
     virtual task flush_env();
       bit flush;
 
-      forever begin
-        // Blocking until flush is received
-        af_flush.get(flush);
+      // Blocking until flush is received
+      af_flush.get(flush);
 
-        `uvm_info("FPU SB", "Flushing in-flight requests", UVM_LOW);
-        
-        q_fpu_req.delete();
-        m_sequencer.q_inflight_tid.delete();        
-        req_cnt = 0;
-        all_done = 0;  
-      end
+      `uvm_info("FPU SB", "Flushing in-flight requests", UVM_LOW);
+      q_fpu_req.delete();
+      m_sequencer.q_inflight_tid.delete();        
+      req_cnt = 0;
+      all_done = 0;  
     endtask 
 
     // -------------------------------------------------------------------------

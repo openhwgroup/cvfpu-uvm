@@ -56,12 +56,6 @@ class base_test extends uvm_test;
     // -------------------------------------------------------------------------
     function new(string name, uvm_component parent);
       super.new(name, parent);
-
-      if (!$value$plusargs("NB_TXNS=%d", num_txn )) begin
-        num_txn = 10000;
-      end // if
-      
-      `uvm_info( get_full_name(), $sformatf("NUM_TXN=%0d", num_txn), UVM_HIGH );      
     endfunction: new
 
     // -------------------------------------------------------------------------
@@ -130,6 +124,9 @@ class base_test extends uvm_test;
   // Main phase
   // -------------------------------------------------------------------------
   virtual task main_phase(uvm_phase phase);
+
+    num_txn = env.m_fpu_top_cfg.get_num_txn();
+
     // Compute the number of transactions after which a reset is asserted
     nb_trans_before_rst = $urandom_range(num_txn/4, num_txn/2);
     all_done = 0;
@@ -146,6 +143,7 @@ class base_test extends uvm_test;
         // ---------------------------------------
         begin: MAIN_THREAD
           `uvm_info(get_full_name(), "Inside main thread", UVM_HIGH)
+          base_sequence.set_num_txn(num_txn);
           base_sequence.start(env.m_fpu_agent.m_sequencer);
           // Block until all transactions are executed
           wait (env.m_fpu_sb.all_done == 1'b1);

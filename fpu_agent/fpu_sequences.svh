@@ -47,12 +47,6 @@ class fpu_base_sequence extends uvm_sequence #(fpu_txn);
     function new( string name = "base_data_txn_sequence" );
         super.new(name);
 
-        if (!$value$plusargs("NB_TXNS=%d", num_txn )) begin
-            num_txn = 10000;
-        end // if
-        
-        `uvm_info( get_full_name(), $sformatf("NUM_TXN=%0d", num_txn), UVM_HIGH );
-
         // Enable response handler
         use_response_handler(1);
     endfunction: new
@@ -70,6 +64,10 @@ class fpu_base_sequence extends uvm_sequence #(fpu_txn);
 
     function void set_op_group (input int op_group_cfg);
         this.op_group_cfg = op_group_cfg;
+    endfunction
+
+    function void set_num_txn(input int num_txn);
+        this.num_txn = num_txn;
     endfunction
  
     // If the id list if full, it waits until an id is freed 
@@ -378,61 +376,67 @@ class fpu_unit_seq extends  fpu_base_sequence;
 
         item = fpu_txn::type_id::create("fpu single request");
 
-        // --------------------------------------------------------------------------------
-        // to generate unique TID a list of tid in flight is passed on to the sequence
-        // --------------------------------------------------------------------------------
-        item.q_inflight_tid = my_sequencer.q_inflight_tid;
+        for (int i = 0; i < num_txn; i++) begin
+            // --------------------------------------------------------------------------------
+            // to generate unique TID a list of tid in flight is passed on to the sequence
+            // --------------------------------------------------------------------------------
+            item.q_inflight_tid = my_sequencer.q_inflight_tid;
 
-        // --------------------------------
-        // Randomize transaction item
-        // --------------------------------
-        if ( !item.randomize() with 
-            {
-                //-----------------------------------------------
-                //  ISSUE #3123 in CVA6
-                m_nan_box == 0;
-                m_operation == FDIV;
-                m_operand_a == 'hc1ddd216;
-                m_operand_b == 'hbae084b4;
-                m_fmt == 0; // 32bits
-                m_imm == 0;
-                //-----------------------------------------------
-                //  ISSUE #145 + PR #147 ( tested and it works )
-                // m_operation == FCVT_F2I;
-                // m_operand_a == 64'hC1E0000000000000;
-                // m_fmt == 1;
-                // m_imm == 0;
-                // m_rm == 0;
-                //-----------------------------------------------
-                // ISSUE #120 -> no error in current version with THMULTI
-                // m_operation == FDIV;
-                // m_operand_a == 'h0;
-                // m_operand_b == 'h7F800000;
-                // m_fmt == 0;
-                //-----------------------------------------------
-                // ISSUE #139 -> no error in current version with THMULTI
-                // m_operation == FDIV;
-                // m_operand_a == 'h7f7fffff;
-                // m_operand_b == 'h3f7fffff;
-                // m_fmt == 0;
-                //-----------------------------------------------
-                // ISSUE #121 -> no error in current version with THMULTI
-                // m_operation == FDIV;
-                // m_operand_a == 'h00000001;
-                // m_operand_b == 'h3F800000;
-                // m_fmt       == 0;
-                //-----------------------------------------------
-            } ) 
-        begin
-            `uvm_fatal("body","Randomization failed");    
+            // --------------------------------
+            // Randomize transaction item
+            // --------------------------------
+            if ( !item.randomize() with 
+                {
+                    m_nan_box == 0;
+                    m_operation inside {FDIV, FSQRT};
+                    m_fmt inside {0,2};
+                    m_imm == 0;
+                    //-----------------------------------------------
+                    //  ISSUE #3123 in CVA6
+                    // m_nan_box == 0;
+                    // m_operation == FDIV;
+                    // m_operand_a == 'hc1ddd216;
+                    // m_operand_b == 'hbae084b4;
+                    // m_fmt == 0; // 32bits
+                    // m_imm == 0;
+                    //-----------------------------------------------
+                    //  ISSUE #145 + PR #147 ( tested and it works )
+                    // m_operation == FCVT_F2I;
+                    // m_operand_a == 64'hC1E0000000000000;
+                    // m_fmt == 1;
+                    // m_imm == 0;
+                    // m_rm == 0;
+                    //-----------------------------------------------
+                    // ISSUE #120 -> no error in current version with THMULTI
+                    // m_operation == FDIV;
+                    // m_operand_a == 'h0;
+                    // m_operand_b == 'h7F800000;
+                    // m_fmt == 0;
+                    //-----------------------------------------------
+                    // ISSUE #139 -> no error in current version with THMULTI
+                    // m_operation == FDIV;
+                    // m_operand_a == 'h7f7fffff;
+                    // m_operand_b == 'h3f7fffff;
+                    // m_fmt == 0;
+                    //-----------------------------------------------
+                    // ISSUE #121 -> no error in current version with THMULTI
+                    // m_operation == FDIV;
+                    // m_operand_a == 'h00000001;
+                    // m_operand_b == 'h3F800000;
+                    // m_fmt       == 0;
+                    //-----------------------------------------------
+                } ) 
+            begin
+                `uvm_fatal("body","Randomization failed");    
+            end
+            // --------------------------------------------------------------------------------
+            // It is used when the response is received from the driver
+            // --------------------------------------------------------------------------------
+            my_sequencer.q_inflight_tid[item.m_trans_id] = item.m_trans_id;
+
+            start_item( item );
+            finish_item( item );
         end
-        // --------------------------------------------------------------------------------
-        // It is used when the response is received from the driver
-        // --------------------------------------------------------------------------------
-        my_sequencer.q_inflight_tid[item.m_trans_id] = item.m_trans_id;
-
-        start_item( item );
-        finish_item( item );
   endtask: body
 
 endclass: fpu_unit_seq

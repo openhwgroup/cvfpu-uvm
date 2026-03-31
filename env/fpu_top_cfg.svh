@@ -30,12 +30,19 @@ class fpu_top_cfg extends uvm_object;
 
     rand bit m_reset_on_the_fly;
     rand bit m_flush_on_the_fly;
-        
+    // Number of transactions in a sequence
+    int num_txn;
+
     // ------------------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------------------
     function new(string name = "fpu_top_cfg");
         super.new(name);
+
+        if (!$value$plusargs("NB_TXNS=%d", num_txn )) begin
+            num_txn = 10000;
+        end
+      `uvm_info( get_full_name(), $sformatf("NUM_TXN=%0d", num_txn), UVM_HIGH );
     endfunction
 
     // ---------------------------------------------
@@ -47,6 +54,10 @@ class fpu_top_cfg extends uvm_object;
 
     virtual function bit get_flush_on_the_fly();
         return m_flush_on_the_fly;
+    endfunction
+
+    virtual function int get_num_txn();
+        return num_txn;
     endfunction
 
     // ------------------------------------------------------------------------
