@@ -41,23 +41,21 @@ class base_test extends uvm_test;
     // -------------------------------------------------
     fpu_base_sequence           base_sequence; 
 
-    int unsigned                clk_cnt_before_rst;
-    int unsigned                nb_trans_before_rst;
-
     // Number of transactions in a sequence
     int                         num_txn;
+
+    // --------------------------------------------------
+    // Internal fields
+    // -------------------------------------------------
+    bit          all_done;      // set when scoreboard signals completion
+    int unsigned clk_cnt_before_rst;  // Number of clock cycles before asserting async reset
+    int unsigned nb_trans_before_rst; // Number of output transactions before asserting async reset
 
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
     function new(string name, uvm_component parent);
       super.new(name, parent);
-
-      if (!$value$plusargs("NB_TXNS=%d", num_txn )) begin
-        num_txn = 10000;
-      end // if
-      
-      `uvm_info( get_full_name(), $sformatf("NUM_TXN=%0d", num_txn), UVM_HIGH );      
     endfunction: new
 
     // -------------------------------------------------------------------------
@@ -78,25 +76,14 @@ class base_test extends uvm_test;
                     get_full_name( ), ".fpu_vif"})
       end
 
-      if(!uvm_config_db #( virtual pulse_if)::get(null, "", "flush_driver", flush_vif ))  begin
-        `uvm_error("NOVIF", {"Unable to get vif from configuration database for: ",
-                    get_full_name( ), ".vif"})
+      if (!uvm_config_db #( virtual pulse_if)::get(this, "", "flush_driver", flush_vif )) begin
+          `uvm_fatal("BUILD_PHASE", $psprintf("Unable to get flush_driver for %s from configuration database", get_name() ) );
       end
 
       base_sequence = fpu_base_sequence::type_id::create("seq");
 
       `uvm_info(get_full_name(), "Build phase complete", UVM_HIGH)
     endfunction: build_phase
-
-    // -------------------------------------------------------------------------
-    // Connect phase
-    // -------------------------------------------------------------------------
-    function void connect_phase(uvm_phase phase);
-      `uvm_info(get_full_name( ), "Connect phase complete.", UVM_LOW)
-
-      env.m_fpu_sb.flush_vif    = flush_vif;
-      env.m_fpu_sb.flush_driver = env.m_flush_driver;
-    endfunction: connect_phase 
 
   // -------------------------------------------------------------------------
   // End of elaboration phase
@@ -130,58 +117,84 @@ class base_test extends uvm_test;
   // -------------------------------------------------------------------------
   virtual task reset_phase( uvm_phase phase );
     clk_cnt_before_rst = 0;
+    all_done = 0;
   endtask
 
   // -------------------------------------------------------------------------
   // Main phase
   // -------------------------------------------------------------------------
   virtual task main_phase(uvm_phase phase);
+
+    num_txn = env.m_fpu_top_cfg.get_num_txn();
+
+    // Compute the number of transactions after which a reset is asserted
+    nb_trans_before_rst = $urandom_range(num_txn/4, num_txn/2);
+    all_done = 0;
+
     super.main_phase( phase );
 
     phase.phase_done.set_drain_time(this, 1500);
-
-    fork
-      // --------------------------------------------------------------
-      // start the base sequence here 
-      // This base sequence needs to be overwritten in the test class 
-      // ---------------------------------------------------------------
-      base_sequence.start(env.m_fpu_agent.m_sequencer);
-    join_none
+    phase.raise_objection(this, "Test started");
     
-    // Compute the number of transactions after which a reset is asserted
-    nb_trans_before_rst = $urandom_range(num_txn/2, num_txn/4);
-
-    if (env.m_fpu_top_cfg.get_reset_on_the_fly()) begin
+    do begin
       fork
-        phase.raise_objection(this, "Start reset asertion");
-        forever begin
-          clk_vif.wait_n_clocks(1);
-          clk_cnt_before_rst++;
-
-          // Assert reset on the fly when condition is met
-          if( (env.m_fpu_sb.get_req_counter() == nb_trans_before_rst) || (clk_cnt_before_rst == 10*num_txn) ) begin	
-            phase.drop_objection(this, "Assert reset");
-            
-            // env.m_fpu_agent.m_sequencer.stop_sequences();
-            env.m_reset_driver.emit_assert_reset();
-          end
-
-          // Break from loop when reset is done
-          if(env.m_reset_driver.get_reset_on_the_fly_done() == 1) begin
-            `uvm_info("RESET ON THE FLY END", $sformatf("%0d(d), %0d(d)",env.m_fpu_sb.get_req_counter(), nb_trans_before_rst ), UVM_DEBUG); 
-            phase.drop_objection(this, "Finish reset assertion");
-            break;
+        // ---------------------------------------
+        // MAIN THREAD
+        // ---------------------------------------
+        begin: MAIN_THREAD
+          `uvm_info(get_full_name(), "Inside main thread", UVM_HIGH)
+          base_sequence.set_num_txn(num_txn);
+          base_sequence.start(env.m_fpu_agent.m_sequencer);
+          // Block until all transactions are executed
+          wait (env.m_fpu_sb.all_done == 1'b1);
+          all_done = 1;
+        end
+        // ---------------------------------------
+        // FLUSH THREAD
+        // ---------------------------------------
+        begin: FLUSH_THREAD
+          `uvm_info(get_full_name(), "Inside flush thread", UVM_HIGH)
+          if ( env.m_fpu_top_cfg.get_flush_on_the_fly() && env.m_flush_driver.get_pulse_cnt() < 1) begin
+            // Block until a flush is detected
+            @(env.m_flush_driver.pulse_fired);
+          end else begin
+            // Wait here until all transactions are executed
+            wait (0);
           end
         end
-      join_none
-    end
+        // ---------------------------------------
+        // RESET THREAD
+        // ---------------------------------------
+        begin : RESET_THREAD
+          `uvm_info(get_full_name(), "Inside reset thread", UVM_HIGH)
+          if ( env.m_fpu_top_cfg.get_reset_on_the_fly() && !env.m_reset_driver.get_reset_on_the_fly_done()) begin
+            // Wait until transaction threshold or clock timeout
+            forever begin
+              clk_vif.wait_n_clocks(1);
+              clk_cnt_before_rst++;
 
-    phase.raise_objection(this, "Starting sequences");
-    clk_vif.wait_n_clocks(100000);
-    phase.drop_objection(this, "Completed sequences");
+              // Assert reset on the fly when condition is met
+              if( (env.m_fpu_sb.get_req_counter() == nb_trans_before_rst) || (clk_cnt_before_rst == 10*num_txn) ) begin
+                `uvm_info(get_full_name(), $sformatf("Asserting reset after %0d reqs / %0d clks",
+                                env.m_fpu_sb.get_req_counter(),
+                                clk_cnt_before_rst), UVM_HIGH)
+                env.m_reset_driver.emit_assert_reset();
+                all_done=1; // Break from while loop
+                break; // Break from forever loop
+              end
+            end
+          end else begin
+            // Wait here until all transactions are executed
+            wait (0);
+          end
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_full_name(), "Fork disabled", UVM_HIGH)
+    end while (!all_done);
+
+    phase.drop_objection(this, "Test finished");
 
     `uvm_info(get_full_name(), "Main phase complete", UVM_LOW)
   endtask
-  
-
 endclass: base_test

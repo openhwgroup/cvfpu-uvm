@@ -82,9 +82,11 @@ class fpu_env extends uvm_env;
 
         m_fpu_agent.m_monitor.ap_fpu_req.connect(m_fpu_sb.af_fpu_req.analysis_export );
         m_fpu_agent.m_monitor.ap_fpu_rsp.connect(m_fpu_sb.af_fpu_rsp.analysis_export );
+        m_fpu_agent.m_monitor.ap_flush.connect(m_fpu_sb.af_flush.analysis_export );
 
         m_flush_driver.m_pulse_cfg = m_flush_cfg;
         m_fpu_sb.m_sequencer = m_fpu_agent.m_sequencer;
+        m_fpu_sb.num_txn = m_fpu_top_cfg.get_num_txn();
         `uvm_info(get_full_name( ), "Connect phase complete.", UVM_DEBUG)
     endfunction: connect_phase
 

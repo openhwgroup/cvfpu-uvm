@@ -24,7 +24,11 @@
  *  History       :
  */
 
+`uvm_analysis_imp_decl(_flush)
+
 class fpu_sequencer extends uvm_sequencer #(fpu_txn, fpu_txn);
+
+  uvm_analysis_imp_flush #(bit, fpu_sequencer) flush_export;
 
   // -------------------------------------------------------
   // List of in-flight transactions' IDs
@@ -40,5 +44,18 @@ class fpu_sequencer extends uvm_sequencer #(fpu_txn, fpu_txn);
       super.new(name, parent);
       
   endfunction: new
+
+  virtual function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    flush_export = new("flush_export", this);
+  endfunction
   
+  // -------------------------------------------------------------------------
+  // Called automatically when monitor writes to ap_flush
+  // -------------------------------------------------------------------------
+  virtual function void write_flush(bit t);
+    // Stop any running sequences
+    stop_sequences();
+
+  endfunction
 endclass: fpu_sequencer

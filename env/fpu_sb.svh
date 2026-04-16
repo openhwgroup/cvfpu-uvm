@@ -38,6 +38,9 @@ class fpu_sb extends uvm_scoreboard;
     // Receives the response sent by the DUV
     uvm_tlm_analysis_fifo #(fpu_rsp_t) af_fpu_rsp;
 
+    // Flush detection
+    uvm_tlm_analysis_fifo #(bit) af_flush;
+
     fpu_req_t q_fpu_req[ logic [CVA6Cfg.TRANS_ID_BITS-1:0] ];
 
     // -------------------------------------------------------------------------
@@ -46,11 +49,10 @@ class fpu_sb extends uvm_scoreboard;
     event reset_asserted;
     event reset_deasserted;
 
-    int req_cnt;  // Request  counter
+    protected int req_cnt;  // Request  counter
     int rsp_cnt; // Response counter
-
-    virtual pulse_if flush_vif;
-    pulse_gen_driver flush_driver;
+    bit all_done; // Flag to signal that all requests have been executed (received corresponding responses)
+    int num_txn; // Number of transactions in a sequence
 
     // -----------------------------------------------------------------------
     // Reference model handle
@@ -70,6 +72,8 @@ class fpu_sb extends uvm_scoreboard;
       
       af_fpu_req = new("af_fpu_req", this);
       af_fpu_rsp = new("af_fpu_rsp", this);
+      af_flush = new("af_flush", this);
+
     endfunction: new
 
     // -------------------------------------------------------------------------
@@ -77,9 +81,7 @@ class fpu_sb extends uvm_scoreboard;
     // -------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-
       m_ref_model = new;
-
       `uvm_info("SCOREBOARD", "Build stage complete.", UVM_MEDIUM)
     endfunction: build_phase
 
@@ -101,6 +103,8 @@ class fpu_sb extends uvm_scoreboard;
       m_sequencer.q_inflight_tid.delete();
 
       req_cnt = 0;
+      rsp_cnt = 0;
+      all_done = 1'b0;
 
       `uvm_info("SCOREBOARD", "Reset stage complete.", UVM_MEDIUM)
     endtask: reset_phase
@@ -119,27 +123,30 @@ class fpu_sb extends uvm_scoreboard;
     // -------------------------------------------------------------------------
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      fork
-        collect_fpu_req();
-        collect_fpu_resp();
-        flush_env();
-      join_none
+      forever begin
+        fork
+          collect_fpu_req();
+          collect_fpu_resp();
+          flush_env();
+        join_any
+        disable fork;
+      end
     endtask: main_phase
 
     // -------------------------------------------------------------------------
     // Flushes environment
     // -------------------------------------------------------------------------
     virtual task flush_env();
-      forever begin
-        @(posedge flush_vif.m_pulse_out);
-        `uvm_info("FPU SB", "Flush asserted", UVM_LOW);
-        @(negedge flush_vif.m_pulse_out);
-        `uvm_info("FPU SB", "Flush de-asserted", UVM_LOW);
+      bit flush;
 
-        // Empty all lists
-        q_fpu_req.delete();
-        m_sequencer.q_inflight_tid.delete();
-      end
+      // Blocking until flush is received
+      af_flush.get(flush);
+
+      `uvm_info("FPU SB", "Flushing in-flight requests", UVM_LOW);
+      q_fpu_req.delete();
+      m_sequencer.q_inflight_tid.delete();        
+      req_cnt = 0;
+      all_done = 0;  
     endtask 
 
     // -------------------------------------------------------------------------
@@ -193,6 +200,17 @@ class fpu_sb extends uvm_scoreboard;
           end
           // Verification is done, free entry
           q_fpu_req.delete(rsp.trans_id);
+          // Increment response counter
+          rsp_cnt++;
+          // -------------------------------------------------------
+          // Drive all_done when every sent request has been responded to
+          // and there are no more in-flight requests pending
+          // -------------------------------------------------------
+          if ((rsp_cnt == num_txn)) begin
+            all_done = 1'b1;
+            `uvm_info("FPU SB", $sformatf("all_done: cumulative rsp=%0d/%0d",
+              rsp_cnt, num_txn), UVM_HIGH)
+          end
         end else begin
           `uvm_error("FPU_SB_ERR", $sformatf("TID = %0h. No corresponding request", rsp.trans_id));
         end
@@ -205,5 +223,4 @@ class fpu_sb extends uvm_scoreboard;
     function int get_req_counter();
       return req_cnt;
     endfunction 
-
 endclass: fpu_sb

@@ -34,6 +34,7 @@ class fpu_monitor extends uvm_monitor;
     protected uvm_active_passive_enum is_active = UVM_PASSIVE;
 
     virtual fpu_if                   fpu_vif;
+    virtual pulse_if                 flush_vif;
 
     int                              num_req_pkts;
     int                              num_resp_pkts;
@@ -49,6 +50,11 @@ class fpu_monitor extends uvm_monitor;
     // -------------------------------------------------------------------------
     uvm_analysis_port #(fpu_rsp_t) ap_fpu_rsp;
     fpu_rsp_t                      m_rsp_packet;
+
+    // -------------------------------------------------------------------------
+    // Analysis port for flush handling
+    // -------------------------------------------------------------------------
+    uvm_analysis_port #(bit)        ap_flush;
 
     // -------------------------------------------------------------------------
     // Sequencer used to clean the inflight id list
@@ -76,6 +82,7 @@ class fpu_monitor extends uvm_monitor;
 
         ap_fpu_req  = new("ap_fpu_req", this);
         ap_fpu_rsp = new("ap_fpu_rsp", this);
+        ap_flush = new("ap_flush", this);
 
         num_req_pkts        = 0;
         num_resp_pkts       = 0;
@@ -114,11 +121,20 @@ class fpu_monitor extends uvm_monitor;
     // -------------------------------------------------------------------------
     virtual task main_phase(uvm_phase phase);
         `uvm_info("FPU MONITOR", "Entering Main Phase", UVM_HIGH);
-        fork
-            collect_reqs();
-            collect_resps();
-        join_none
-        `uvm_info("FPU MONITOR", "Leaving Main Phase", UVM_HIGH);
+        forever begin
+            fork
+                collect_reqs();
+                collect_resps();
+                begin: FLUSH_THREAD
+                    // Polling for a flush
+                    @(posedge fpu_vif.clk_i iff flush_vif.m_pulse_out === 1'b1);
+                    `uvm_info("FPU MONITOR", "Outside of fork: Flush detected", UVM_HIGH)
+                end
+                flush_detect();
+            join_any
+            disable fork;
+            @(posedge fpu_vif.clk_i iff flush_vif.m_pulse_out === 1'b0);
+        end
     endtask: main_phase
 
     // -------------------------------------------------------------------------
@@ -150,7 +166,7 @@ class fpu_monitor extends uvm_monitor;
     // -------------------------------------------------------------------------
     // Collect responses
     // -------------------------------------------------------------------------
-    task collect_resps();
+    virtual task collect_resps();
         fpu_rsp_t rsp;
 
         forever begin
@@ -171,6 +187,17 @@ class fpu_monitor extends uvm_monitor;
                 num_resp_pkts++;
             end
         end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Monitor flush signal
+    // -------------------------------------------------------------------------
+    virtual task flush_detect();
+        @(posedge fpu_vif.clk_i iff flush_vif.m_pulse_out === 1'b1);
+        `uvm_info("FPU MONITOR", "Flush detected", UVM_HIGH);
+
+        // Notify sequencer and scoreboard of flush
+        ap_flush.write(1'b1);
     endtask
 
     // -------------------------------------------------------------------------
@@ -195,4 +222,7 @@ class fpu_monitor extends uvm_monitor;
         fpu_vif = I;
     endfunction
 
+    function void set_flush_vif (virtual pulse_if I);
+        flush_vif = I;
+    endfunction
 endclass: fpu_monitor

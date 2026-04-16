@@ -36,7 +36,8 @@ class fpu_driver extends uvm_driver #(fpu_txn);
     // ------------------------------------------------------------------------
     // Virtual interface
     // -----------------------------------------------------------------------
-    virtual fpu_if fpu_vif;
+    virtual fpu_if   fpu_vif;
+    virtual pulse_if flush_vif;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -80,10 +81,34 @@ class fpu_driver extends uvm_driver #(fpu_txn);
     // -------------------------------------------------------------------------
     virtual task main_phase(uvm_phase phase);
         super.main_phase(phase);
-        fork
-            get_and_drive();
-        join_none
-        
+        forever begin
+            fork
+                get_and_drive();
+                begin: FLUSH_THREAD
+                    // Polling for a flush
+                    @(posedge fpu_vif.clk_i iff flush_vif.m_pulse_out === 1'b1);
+                end
+            join_any
+            disable fork;
+
+            `uvm_info("FPU DRIVER", "Outside of fork: Flush detected, reset DUT interface to its reset state", UVM_HIGH)
+
+            // Reset DUT interface to its reset state
+            fpu_vif.fpu_valid_i         <= 1'b0;
+            fpu_vif.fu_data_i.fu        <= FPU;
+            fpu_vif.fu_data_i.operation <= FADD;
+            fpu_vif.fu_data_i.operand_a <= '0;
+            fpu_vif.fu_data_i.operand_b <= '0;
+            fpu_vif.fu_data_i.imm       <= '0;
+            fpu_vif.fu_data_i.trans_id  <= '0;
+            fpu_vif.fpu_fmt_i           <= '0;
+            fpu_vif.fpu_frm_i           <= '0;
+            fpu_vif.fpu_rm_i            <= '0;
+            fpu_vif.fpu_prec_i          <= '0;
+
+            @(posedge fpu_vif.clk_i iff flush_vif.m_pulse_out === 1'b0);
+            `uvm_info("FPU DRIVER", "Flush complete", UVM_HIGH)
+        end
     endtask: main_phase
 
     // -------------------------------------------------------------------------
@@ -135,6 +160,8 @@ class fpu_driver extends uvm_driver #(fpu_txn);
         fpu_vif = I;
     endfunction
 
-    
+    function void set_flush_vif (virtual pulse_if I);
+        flush_vif = I;
+    endfunction
 endclass: fpu_driver
 

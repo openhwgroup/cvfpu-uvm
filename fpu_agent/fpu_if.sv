@@ -41,6 +41,7 @@ import fpu_common_pkg::*;
     logic       [CVA6Cfg.TRANS_ID_BITS-1:0] fpu_trans_id_o;
     logic       [         CVA6Cfg.FLen-1:0] result_o;
     exception_t                             fpu_exception_o;
+    logic                                   fpu_early_valid_o;
 
   // ------------------------------------------------------------------------
   // Delay Task
