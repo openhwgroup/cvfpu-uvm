@@ -20,16 +20,16 @@
 /*
  *  Authors       : Ihsane TAHIR
  *  Creation Date : March, 2025
- *  Description   : Directed test for F2I bug
+ *  Description   : Fully random test
  *  History       :
  */
 
 
-class bug_f2i_test extends base_test;
+class fpu_special_val_test extends base_test;
 
-    `uvm_component_utils(bug_f2i_test)
+    `uvm_component_utils(fpu_special_val_test)
 
-    bug_f2i_seq  m_seq;
+    fpu_special_val_seq  m_seq;
   
     // -------------------------------------------------------------------------
     // Constructor
@@ -44,7 +44,7 @@ class bug_f2i_test extends base_test;
     virtual task pre_main_phase(uvm_phase phase);
 
       // Create new sequence
-      m_seq = bug_f2i_seq::type_id::create("seq");
+      m_seq = fpu_special_val_seq::type_id::create("seq");
       
       if(!$cast(base_sequence, m_seq)) `uvm_fatal("CAST FAILED", "cannot cast base seqence");
 
@@ -52,4 +52,4 @@ class bug_f2i_test extends base_test;
 
     endtask: pre_main_phase
   
-endclass: bug_f2i_test
+endclass: fpu_special_val_test
