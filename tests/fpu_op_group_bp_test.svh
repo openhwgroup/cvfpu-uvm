@@ -20,16 +20,17 @@
 /*
  *  Authors       : Ihsane TAHIR
  *  Creation Date : March, 2025
- *  Description   : Directed test for F2I bug
+ *  Description   : Pseudo-random test where operation group is fixed 
+ *                  to a random value, remaining fields are random
  *  History       :
  */
 
 
-class bug_f2i_test extends base_test;
+class fpu_op_group_bp_test extends base_test;
 
-    `uvm_component_utils(bug_f2i_test)
+    `uvm_component_utils(fpu_op_group_bp_test)
 
-    bug_f2i_seq  m_seq;
+    fpu_op_group_bp_seq  m_seq;
   
     // -------------------------------------------------------------------------
     // Constructor
@@ -43,13 +44,18 @@ class bug_f2i_test extends base_test;
     // -------------------------------------------------------------------------
     virtual task pre_main_phase(uvm_phase phase);
 
-      // Create new sequence
-      m_seq = bug_f2i_seq::type_id::create("seq");
+      int op_group_cfg;
       
+      op_group_cfg = $urandom_range(0,3);
+
+      // Create new sequence
+      m_seq = fpu_op_group_bp_seq::type_id::create("seq");      
       if(!$cast(base_sequence, m_seq)) `uvm_fatal("CAST FAILED", "cannot cast base seqence");
+
+      m_seq.set_op_group(op_group_cfg);
 
       super.pre_main_phase(phase);
 
     endtask: pre_main_phase
   
-endclass: bug_f2i_test
+endclass: fpu_op_group_bp_test

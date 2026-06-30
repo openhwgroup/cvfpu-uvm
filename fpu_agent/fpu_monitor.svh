@@ -51,6 +51,11 @@ class fpu_monitor extends uvm_monitor;
     uvm_analysis_port #(fpu_rsp_t) ap_fpu_rsp;
     fpu_rsp_t                      m_rsp_packet;
 
+    uvm_analysis_port #(fpu_obs_txn) ap_conv_obs;
+
+    fpu_req_t m_pending_reqs [logic [CVA6Cfg.TRANS_ID_BITS-1:0]];
+
+
     // -------------------------------------------------------------------------
     // Analysis port for flush handling
     // -------------------------------------------------------------------------
@@ -81,8 +86,9 @@ class fpu_monitor extends uvm_monitor;
         super.build_phase(phase);
 
         ap_fpu_req  = new("ap_fpu_req", this);
-        ap_fpu_rsp = new("ap_fpu_rsp", this);
-        ap_flush = new("ap_flush", this);
+        ap_fpu_rsp  = new("ap_fpu_rsp", this);
+        ap_flush    = new("ap_flush", this);
+        ap_conv_obs = new("ap_conv_obs", this);
 
         num_req_pkts        = 0;
         num_resp_pkts       = 0;
@@ -159,6 +165,8 @@ class fpu_monitor extends uvm_monitor;
                 // Send object to the scoreboard
                 ap_fpu_req.write(req);
                 num_req_pkts++;
+
+                m_pending_reqs[req.data.trans_id] = req;
             end
         end
     endtask: collect_reqs
@@ -168,6 +176,7 @@ class fpu_monitor extends uvm_monitor;
     // -------------------------------------------------------------------------
     virtual task collect_resps();
         fpu_rsp_t rsp;
+        fpu_obs_txn obs;
 
         forever begin
             @(posedge fpu_vif.clk_i);
@@ -185,6 +194,22 @@ class fpu_monitor extends uvm_monitor;
                 // Send object to the scoreboard
                 ap_fpu_rsp.write(rsp);
                 num_resp_pkts++;
+
+                if (m_pending_reqs.exists(rsp.trans_id)) begin
+                    fpu_req_t paired_req;
+                    paired_req = m_pending_reqs[rsp.trans_id];
+                    m_pending_reqs.delete(rsp.trans_id);
+                    // Sample for conversion coverage
+                    // if (is_conv_op(ariane_pkg::fu_op'(paired_req.data.operation))) begin
+                        obs = build_conv_obs_txn(paired_req, rsp);
+                        ap_conv_obs.write(obs);
+                    // end
+                end else begin
+                    `uvm_info("FPU_MONITOR",
+                        $sformatf("Response trans_id=0x%0x has no matching pending request",
+                                  rsp.trans_id),
+                        UVM_HIGH)
+                end
             end
         end
     endtask
@@ -225,4 +250,39 @@ class fpu_monitor extends uvm_monitor;
     function void set_flush_vif (virtual pulse_if I);
         flush_vif = I;
     endfunction
+
+    // -------------------------------------------------------------------------
+    // is_conv_op — returns 1 for operations handled by the conversion covergroup
+    // -------------------------------------------------------------------------
+    function automatic logic is_conv_op(ariane_pkg::fu_op op);
+        return (op inside {FCVT_F2I, FCVT_I2F, FCVT_F2F});
+    endfunction : is_conv_op
+
+    // -------------------------------------------------------------------------
+    // build_conv_obs_txn
+    //   Pairs one accepted request with the corresponding DUT response and
+    //   returns a populated fpu_obs_txn ready for the coverage subscriber.
+    // -------------------------------------------------------------------------
+    function automatic fpu_obs_txn build_conv_obs_txn(
+        fpu_req_t req,
+        fpu_rsp_t rsp
+    );
+        fpu_obs_txn obs;
+        obs = fpu_obs_txn::type_id::create("conv_obs");
+
+        obs.m_operation = ariane_pkg::fu_op'(req.data.operation);
+        obs.m_fmt       = req.fmt;
+        obs.m_rm        = req.rm;
+        obs.m_imm       = req.data.imm;
+        obs.m_operand_a = req.data.operand_a;
+        obs.m_operand_b = req.data.operand_b;
+
+        obs.result_o    = rsp.result;
+        // FPnew status_t {NV[4], DZ[3], OF[2], UF[1], NX[0]} is forwarded
+        // through CVA6's exception cause bus on the FPU response path.
+        obs.status_o    = rsp.exception.cause[4:0];
+
+        return obs;
+    endfunction : build_conv_obs_txn
+
 endclass: fpu_monitor

@@ -35,6 +35,7 @@ package fpu_env_pkg;
   import fpu_agent_pkg::*;
   import clock_driver_pkg::*;
   import reset_driver_pkg::*;
+  import bp_driver_pkg::*;
   import watchdog_pkg::*;
   import pulse_gen_pkg::*;
 

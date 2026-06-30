@@ -37,6 +37,9 @@ class fpu_env extends uvm_env;
     pulse_gen_driver             m_flush_driver;
     pulse_gen_cfg                m_flush_cfg;
 
+    bp_agent                     m_req_bp_agent;
+    bp_virtual_sequence          m_req_bp_seq;
+
     fpu_top_cfg                  m_fpu_top_cfg;
 
     reset_driver_c #(1'b1,50,0)  m_reset_driver;
@@ -69,6 +72,9 @@ class fpu_env extends uvm_env;
         m_flush_driver = pulse_gen_driver::type_id::create("flush_driver", this );
         m_flush_cfg    = pulse_gen_cfg::type_id::create("flush_cfg", this );
 
+        m_req_bp_agent = bp_agent::type_id::create("req_bp_agent", this);
+        m_req_bp_seq   = bp_virtual_sequence::type_id::create("req_bp_sequence", this);
+
         m_fpu_top_cfg  = fpu_top_cfg::type_id::create("fpu_top_cfg", this );
 
         `uvm_info(get_full_name(), "Build phase complete", UVM_DEBUG)
@@ -86,6 +92,7 @@ class fpu_env extends uvm_env;
 
         m_flush_driver.m_pulse_cfg = m_flush_cfg;
         m_fpu_sb.m_sequencer = m_fpu_agent.m_sequencer;
+
         m_fpu_sb.num_txn = m_fpu_top_cfg.get_num_txn();
         `uvm_info(get_full_name( ), "Connect phase complete.", UVM_DEBUG)
     endfunction: connect_phase

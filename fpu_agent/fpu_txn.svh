@@ -67,12 +67,14 @@ class fpu_txn extends uvm_sequence_item;
         RANDOM_INT
     } int_type_cfg_e;
 
-    logic [CVA6Cfg.XLEN-1:0] special_int_values[5] = '{
-        64'h7FFF_FFFF_FFFF_FFFF,
-        64'hFFFF_FFFF_FFFF_FFFF,
-        64'h7FFF_FFFF,
-        64'hFFFF_FFFF,
-        64'h0
+    logic [CVA6Cfg.XLEN-1:0] special_int_values[7] = '{
+        64'h7FFF_FFFF_FFFF_FFFF, // IN64_MAX
+        64'hFFFF_FFFF_FFFF_FFFF, // UINT64_MAX
+        64'h7FFF_FFFF,           // IN32_MAX
+        64'hFFFF_FFFF,           // UINT32_MAX
+        64'h0,                   // Zero
+        64'h8000_0000_0000_0000, // INT64_MIN
+        64'h8000_0000            // INT32_MIN
     };
              
     // List containing in flight transcation IDs
@@ -81,7 +83,6 @@ class fpu_txn extends uvm_sequence_item;
     //-------------------------------------------------------------------------
     // Transaction configuration fields
     //-------------------------------------------------------------------------
-    //RG:array unpacked for VCS compatibility
     rand fp_op_type_e   m_fp_op_type [2:0];         // Class of floating point operands
     rand fp_double_t    m_fp_double_operands [2:0]; // Double precision floating point operands
     rand fp_single_t    m_fp_single_operands [2:0]; // Single precision floating point operands
@@ -106,12 +107,12 @@ class fpu_txn extends uvm_sequence_item;
     constraint operands_config_c {
         foreach (m_fp_op_type[i]) {
             m_fp_op_type[i] dist {
-                NORMAL     := 66,
+                NORMAL     := 50,
                 SUBNORMAL  := 30,
-                ZERO       := 1,
-                INF        := 1,
-                QNAN       := 1,
-                SNAN       := 1
+                ZERO       := 5,
+                INF        := 5,
+                QNAN       := 5,
+                SNAN       := 5
             };
         }
     }
@@ -124,6 +125,13 @@ class fpu_txn extends uvm_sequence_item;
             m_fp_op_type[i] inside {ZERO, SUBNORMAL} -> { m_fp_double_operands[i].exponent == '0;
                                                           m_fp_single_operands[i].exponent == '0;
                                                         }
+        }
+    }
+
+    constraint fp_normal_fp64_exp_c {
+        foreach (m_fp_op_type[i]) {
+            (m_fp_op_type[i] == NORMAL) && (m_fmt == 1) -> 
+                m_fp_double_operands[i].exponent dist {1 := 5, [2 : EMIN_FP32-2] := 20, EMIN_FP32 := 5, [EMIN_FP32+2 : EMAX_FP32-2] := 20, EMAX_FP32 := 5, [EMAX_FP32+2 : EMAX_FP64-1] := 45};
         }
     }
 
@@ -140,10 +148,17 @@ class fpu_txn extends uvm_sequence_item;
 
     constraint double_mant_c {
         foreach (m_fp_op_type[i]) {
-            m_fp_op_type[i] inside {ZERO, INF}         -> m_fp_double_operands[i].mantissa == '0;
-            m_fp_op_type[i] inside {QNAN}              -> m_fp_double_operands[i].mantissa != '0;
-            m_fp_op_type[i] inside {SNAN}              -> m_fp_double_operands[i].mantissa[FP64_MAN_BITS-1] == 1'b0;
-            m_fp_op_type[i] inside {SUBNORMAL, NORMAL} -> {
+            if (m_fp_op_type[i] inside {ZERO, INF}) {
+                m_fp_double_operands[i].mantissa == '0;
+            } else if (m_fp_op_type[i] == QNAN) {
+                m_fp_double_operands[i].mantissa != '0;
+            } else if (m_fp_op_type[i] == SNAN) {
+                m_fp_double_operands[i].mantissa[FP64_MAN_BITS-1] == 1'b0;
+            } else if (m_fp_op_type[i] == SUBNORMAL) {
+                (m_fp_mant_cfg[i] == ALL_ONES)     ->  m_fp_double_operands[i].mantissa == '1;
+                (m_fp_mant_cfg[i] == WALKING_ONE)  ->  $countones(m_fp_double_operands[i].mantissa) == 1;
+                (m_fp_mant_cfg[i] == WALKING_ZERO) ->  $countones(m_fp_double_operands[i].mantissa) == 52-1;
+            } else {
                 (m_fp_mant_cfg[i] == ALL_ZEROS)    ->  m_fp_double_operands[i].mantissa == '0;
                 (m_fp_mant_cfg[i] == ALL_ONES)     ->  m_fp_double_operands[i].mantissa == '1;
                 (m_fp_mant_cfg[i] == WALKING_ONE)  ->  $countones(m_fp_double_operands[i].mantissa) == 1;
@@ -154,14 +169,21 @@ class fpu_txn extends uvm_sequence_item;
 
     constraint single_mant_c {
         foreach (m_fp_op_type[i]) {
-            m_fp_op_type[i] inside {ZERO, INF}         -> m_fp_single_operands[i].mantissa == '0;
-            m_fp_op_type[i] inside {QNAN}              -> m_fp_single_operands[i].mantissa != '0;
-            m_fp_op_type[i] inside {SNAN}              -> m_fp_single_operands[i].mantissa[FP32_MAN_BITS-1] == 1'b0;
-            m_fp_op_type[i] inside {SUBNORMAL, NORMAL} -> {
+            if (m_fp_op_type[i] inside {ZERO, INF}) {
+                m_fp_single_operands[i].mantissa == '0;
+            } else if (m_fp_op_type[i] == QNAN) {
+                m_fp_single_operands[i].mantissa != '0;
+            } else if (m_fp_op_type[i] == SNAN) {
+                m_fp_single_operands[i].mantissa[FP32_MAN_BITS-1] == 1'b0;
+            } else if (m_fp_op_type[i] == SUBNORMAL) {
+                (m_fp_mant_cfg[i] == ALL_ONES)     ->  m_fp_single_operands[i].mantissa == '1;
+                (m_fp_mant_cfg[i] == WALKING_ONE)  ->  $countones(m_fp_single_operands[i].mantissa) == 1;
+                (m_fp_mant_cfg[i] == WALKING_ZERO) ->  $countones(m_fp_single_operands[i].mantissa) == 21;
+            } else {
                 (m_fp_mant_cfg[i] == ALL_ZEROS)    ->  m_fp_single_operands[i].mantissa == '0;
                 (m_fp_mant_cfg[i] == ALL_ONES)     ->  m_fp_single_operands[i].mantissa == '1;
                 (m_fp_mant_cfg[i] == WALKING_ONE)  ->  $countones(m_fp_single_operands[i].mantissa) == 1;
-                (m_fp_mant_cfg[i] == WALKING_ZERO) ->  $countones(m_fp_single_operands[i].mantissa) == 22;
+                (m_fp_mant_cfg[i] == WALKING_ZERO) ->  $countones(m_fp_single_operands[i].mantissa) == 21;
             }
         }
     }
@@ -211,7 +233,9 @@ class fpu_txn extends uvm_sequence_item;
     // Unused field
     constraint unused_c { m_prec == 0; }
 
-    constraint imm_c { (m_operation inside {FCVT_F2F, FCVT_F2I, FCVT_I2F } ) -> m_imm inside {0, 1, 2, 3}; }
+    constraint imm_c { (m_operation == FCVT_F2F ) -> m_imm inside {0, 1};
+                        m_operation inside {FCVT_F2I, FCVT_I2F } -> m_imm inside {0, 1, 2, 3}; // m_imm[1:0] encodes destination interger format for F2I and source integer format for I2F
+                }
 
     constraint fpu_operator_c { m_operation inside {[int'(FADD) : int'(FCLASS)]} ; }
 
@@ -230,6 +254,8 @@ class fpu_txn extends uvm_sequence_item;
         m_operand_b = m_nan_box ? (m_operand_b & ((1 << FP_WIDTH) - 1) | all_ones) : m_operand_b;
         m_imm       = m_nan_box ? (m_imm       & ((1 << FP_WIDTH) - 1) | all_ones) : m_imm;
 
+        `uvm_info("POST_RANDOMIZE", $sformatf("op=%0s, operand_a_type=%0s, fmt=%0d, imm=%0d, nan_box=%b",
+                    m_operation.name(), m_fp_op_type[0].name(), m_fmt, m_imm[1:0], m_nan_box), UVM_LOW);
     endfunction
 
     // -------------------------------------------------------------------------
