@@ -1,3 +1,28 @@
+/*
+ *  Copyright (c) 2026 OpenHW Foundation
+ *
+ *  SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ *
+ *  Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ *  may not use this file except in compliance with the License, or, at your
+ *  option, the Apache License version 2.0. You may obtain a copy of the
+ *  License at
+ *
+ *  https://solderpad.org/licenses/SHL-2.1/
+ *
+ *  Unless required by applicable law or agreed to in writing, any work
+ *  distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ *  License for the specific language governing permissions and limitations
+ *  under the License.
+ */
+/*
+ *  Authors       : Ihsane TAHIR
+ *  Creation Date : April, 2026
+ *  Description   : 
+ *  History       :
+ */
+
 class fpu_noncomput_cov extends uvm_subscriber #(fpu_obs_txn);
     `uvm_component_utils(fpu_noncomput_cov)
 
@@ -93,7 +118,6 @@ class fpu_noncomput_cov extends uvm_subscriber #(fpu_obs_txn);
         logic [1:0]            op,
         logic                  fmt,
         fpnew_pkg::classmask_e op_class,
-        logic                  op1_sign,
         logic                  op2_sign
     );
         option.per_instance = 1;
@@ -109,11 +133,10 @@ class fpu_noncomput_cov extends uvm_subscriber #(fpu_obs_txn);
 
         cp_fmt:  coverpoint fmt;
 
-        cp_op1_sign: coverpoint op1_sign;
         cp_op2_sign: coverpoint op2_sign;
         
         // Cross all coverroups
-        cx_fsgn_x_sign_x_fmt: cross cp_fsgn_op, cp_op_class, cp_op1_sign, cp_op2_sign, cp_fmt;
+        cx_fsgn_x_sign_x_fmt: cross cp_fsgn_op, cp_op_class, cp_op2_sign, cp_fmt;
     endgroup
 
     // Constructor
@@ -155,7 +178,6 @@ class fpu_noncomput_cov extends uvm_subscriber #(fpu_obs_txn);
                     t.m_rm[1:0], // 0=FSGNJ, 1=FSGNJN, 2=FSGNJX
                     t.m_fmt[0],
                     fpu_common_pkg::classify_operand(t.m_operand_a, t.m_fmt),
-                    fpu_common_pkg::get_operand_sign(t.m_operand_a, t.m_fmt),
                     fpu_common_pkg::get_operand_sign(t.m_operand_b, t.m_fmt)
                 );
             end

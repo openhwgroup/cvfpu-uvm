@@ -1,3 +1,28 @@
+/*
+ *  Copyright (c) 2026 OpenHW Foundation
+ *
+ *  SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ *
+ *  Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ *  may not use this file except in compliance with the License, or, at your
+ *  option, the Apache License version 2.0. You may obtain a copy of the
+ *  License at
+ *
+ *  https://solderpad.org/licenses/SHL-2.1/
+ *
+ *  Unless required by applicable law or agreed to in writing, any work
+ *  distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ *  License for the specific language governing permissions and limitations
+ *  under the License.
+ */
+/*
+ *  Authors       : Ihsane TAHIR
+ *  Creation Date : April, 2026
+ *  Description   : 
+ *  History       :
+ */
+
 class fpu_comput_cov extends uvm_subscriber #(fpu_obs_txn);
     `uvm_component_utils(fpu_comput_cov)
 
@@ -49,7 +74,6 @@ class fpu_comput_cov extends uvm_subscriber #(fpu_obs_txn);
         cp_flags: coverpoint flags {
             bins NO_EXCEPTION = {'h0};
             wildcard bins NX = {5'b????1}; // Bit 0: Inexact
-            wildcard bins UF = {5'b???1?}; // Bit 1: Underflow
             wildcard bins OF = {5'b??1??}; // Bit 2: Overflow
             wildcard bins NV = {5'b1????}; // Bit 4: Invalid Operation
         }
@@ -62,45 +86,44 @@ class fpu_comput_cov extends uvm_subscriber #(fpu_obs_txn);
             bins sub_zero_rdn = {1'b1}; // Covers the case of +0 - (+0) with RDN rounding mode yielding a subnormal result
         }
 
-        cp_underflow_normal_res: coverpoint (
+        cp_subnorm_subnorm_res: coverpoint (
             (op inside {FADD, FSUB}) &&
             (op1_class inside {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
             (op2_class inside {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
-            (res_class inside {fpnew_pkg::POSNORM, fpnew_pkg::NEGNORM}) &&
-            ((flags & 5'b00010) != 5'b0)
+            (res_class inside {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM})
         ) {
             bins hit = {1'b1}; // Underflow with normal result: subnormal +/- subnormal -> normal with UF set
         }
+        
+        cp_subnorm_norm_res: coverpoint (
+            (op inside {FADD, FSUB}) &&
+            (op1_class inside {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
+            (op2_class inside {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
+            (res_class inside {fpnew_pkg::POSNORM, fpnew_pkg::NEGNORM})
+        ) {
+            bins hit = {1'b1}; // Exact normal result: subnormal +/- subnormal -> normal with no exception
+        }
 
-        // cx_norm_res_uf: cross cp_op, cp_op1_class, cp_op2_class, cp_res_class, cp_flags {
-        //     // Underflow with normal result: FADD/FSUB of two subnormals yielding a normal result
-        //     bins underflow_normal = (binsof(cp_op.add) || binsof(cp_op.sub)) &&
-        //                              (binsof(cp_op1_class) intersect {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
-        //                              (binsof(cp_op2_class) intersect {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
-        //                              (binsof(cp_res_class) intersect {fpnew_pkg::POSNORM, fpnew_pkg::NEGNORM}) && binsof(cp_flags.UF);
+        cp_inf_invalid: coverpoint (
+            (op inside {FADD, FSUB}) &&
+            (op1_class inside {fpnew_pkg::POSINF, fpnew_pkg::NEGINF}) &&
+            (op2_class inside {fpnew_pkg::POSINF, fpnew_pkg::NEGINF}) &&
+            (flags & 5'b10000) != 5'b0
+        ) {
+            bins hit = {1'b1}; // Covers the case of infinity op infinity yielding an invalid exception
+        }
 
-        //     bins exact_normal = (binsof(cp_op.add) || binsof(cp_op.sub)) &&
-        //                              (binsof(cp_op1_class) intersect {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
-        //                              (binsof(cp_op2_class) intersect {fpnew_pkg::POSSUBNORM, fpnew_pkg::NEGSUBNORM}) &&
-        //                              (binsof(cp_res_class) intersect {fpnew_pkg::POSNORM, fpnew_pkg::NEGNORM}) && binsof(cp_flags.NO_EXCEPTION);
-        // }
+        cp_nan_invalid: coverpoint (
+            (op inside {FADD, FSUB}) &&
+            ((op1_class == fpnew_pkg::SNAN) || (op2_class == fpnew_pkg::SNAN)) &&
+            (flags & 5'b10000) != 5'b0
+        ) {
+            bins hit = {1'b1}; // Covers the case of an operation with a signaling NaN operand yielding an invalid exception
+        }
 
-        // Invalid exception coverage
-        // cx_invalid: cross cp_op, cp_op1_class, cp_op2_class, cp_flags {
-        //     // FADD/FSUB of infinity with infinity
-        //     bins inf_inf = (binsof(cp_op.add) || binsof(cp_op.sub)) &&
-        //                     (binsof(cp_op1_class) intersect {fpnew_pkg::POSINF, fpnew_pkg::NEGINF}) &&
-        //                     (binsof(cp_op2_class) intersect {fpnew_pkg::POSINF, fpnew_pkg::NEGINF}) && binsof(cp_flags.NV);
-
-        //     // FADD/FSUB of NaN with any operand class
-        //     bins nan_any = (binsof(cp_op.add) || binsof(cp_op.sub)) &&
-        //                     ((binsof(cp_op1_class) intersect {fpnew_pkg::SNAN}) ||
-        //                      (binsof(cp_op2_class) intersect {fpnew_pkg::SNAN})) && binsof(cp_flags.NV);
-        // }
-
-        // cx_fadd_fsub_op1_class_x_op2_class_x_fmt: cross cp_op, cp_op1_class, cp_op2_class, cp_fmt;
-
-        // cx_norm_res_uf_x_rnd: cross cp_underflow_normal_res, cp_rnd_mode;
+        cx_fadd_fsub_op1_class_x_op2_class_x_fmt: cross cp_op, cp_op1_class, cp_op2_class, cp_fmt;
+        cx_subnorm_norm_res_x_rnd: cross cp_subnorm_norm_res, cp_rnd_mode;
+        cx_subnorm_subnorm_res_x_rnd: cross cp_subnorm_subnorm_res, cp_rnd_mode;
     endgroup
 
     // -------------------------------------------------------------------------
@@ -181,12 +204,8 @@ class fpu_comput_cov extends uvm_subscriber #(fpu_obs_txn);
         cp_op1_class: coverpoint op1_class;
 
         cp_res_class: coverpoint res_class {
-            bins neg_inf     = {fpnew_pkg::NEGINF};
-            bins neg_normal  = {fpnew_pkg::NEGNORM};
-            bins neg_subnorm = {fpnew_pkg::NEGSUBNORM};
             bins neg_zero    = {fpnew_pkg::NEGZERO};
             bins pos_zero    = {fpnew_pkg::POSZERO};
-            bins pos_subnorm = {fpnew_pkg::POSSUBNORM};
             bins pos_normal  = {fpnew_pkg::POSNORM};
             bins pos_inf     = {fpnew_pkg::POSINF};
             bins qnan        = {fpnew_pkg::QNAN};
@@ -206,8 +225,6 @@ class fpu_comput_cov extends uvm_subscriber #(fpu_obs_txn);
         cp_flags: coverpoint flags {
             bins NO_EXCEPTION = {'h0};
             wildcard bins NX = {5'b????1}; // Bit 0: Inexact
-            wildcard bins UF = {5'b???1?}; // Bit 1: Underflow
-            wildcard bins OF = {5'b??1??}; // Bit 2: Overflow
             wildcard bins NV = {5'b1????}; // Bit 4: Invalid Operation
             ignore_bins DZ = {5'b?1???}; // Bit 3: Divide by Zero (for sqrt of negative)
         }

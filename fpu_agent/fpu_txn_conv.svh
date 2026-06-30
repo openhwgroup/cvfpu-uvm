@@ -1,34 +1,26 @@
 /*
- *  Copyright (c) 2025 CEA*
- *  *Commissariat a l'Energie Atomique et aux Energies Alternatives (CEA)
+ *  Copyright (c) 2026 OpenHW Foundation
  *
  *  SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
  *
+ *  Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ *  may not use this file except in compliance with the License, or, at your
+ *  option, the Apache License version 2.0. You may obtain a copy of the
+ *  License at
+ *
+ *  https://solderpad.org/licenses/SHL-2.1/
+ *
  *  Unless required by applicable law or agreed to in writing, any work
- *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ *  distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  *  License for the specific language governing permissions and limitations
  *  under the License.
  */
 /*
- *  Description : Conversion-specialised sequence item for the CVFPU testbench.
- *                Extends fpu_txn; all parent constraints remain active unless
- *                explicitly narrowed here.
- *
- *  Encoding reminders (CVA6 / FPnew):
- *    FCVT_F2I : m_fmt      = src FP format  (0=FP32, 1=FP64)
- *               m_imm[0]  = int dest width  (0=INT32, 1=INT64)
- *               m_imm[1]  = unsigned flag   (0=signed, 1=unsigned)
- *    FCVT_I2F : m_fmt      = dst FP format  (0=FP32, 1=FP64)
- *               m_imm[0]  = int src  width  (0=INT32, 1=INT64)
- *               m_imm[1]  = unsigned flag
- *    FCVT_F2F : m_imm[1:0] = src FP format (0=FP32, 1=FP64)   ← note: not m_fmt
- *               m_fmt      = dst FP format  (0=FP32, 1=FP64)
- *
- *  NaN-boxing note:
- *    post_randomize in fpu_txn boxes m_operand_a using fp_width(m_imm[1:0])
- *    for F2F, and fp_width(m_fmt) otherwise.  For FCVT_I2F the operand is a
- *    raw integer — we skip super.post_randomize() to preserve it.
+ *  Authors       : Ihsane TAHIR
+ *  Creation Date : 2026
+ *  Description   : 
+ *  History       :
  */
 
 class fpu_txn_conv extends fpu_txn;

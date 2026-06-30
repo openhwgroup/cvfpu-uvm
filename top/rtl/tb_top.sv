@@ -39,6 +39,14 @@ module top;
     import uvm_pkg::*;
     import fpu_common_pkg::*;
     import fpu_test_pkg::*;
+    import bp_driver_pkg::*;
+
+    typedef struct packed {
+        logic [CVA6Cfg.FLen-1:0]          result;
+        fpnew_pkg::status_t               status;
+        logic [CVA6Cfg.TRANS_ID_BITS-1:0] tag;
+    } output_t;
+
     // -----------------------------------------------------------------
     // Clock/Reset signals
     // -----------------------------------------------------------------
@@ -57,8 +65,9 @@ module top;
                                            .reset_n(rst_n), 
                                            .post_shutdown_phase(post_shutdown_phase));
     
-    fpu_if   fpu_vif   (.clk_i( clk ), .rst_ni( rst_n ) );
-    pulse_if flush_vif (.clk  ( clk ), .rstn  ( rst_n ) );
+    fpu_if   fpu_vif         (.clk_i( clk ), .rst_ni( rst_n ) );
+    pulse_if flush_vif       (.clk  ( clk ), .rstn  ( rst_n ) );
+    bp_vif #(1) req_bp_vif   ( .clk ( clk ), .rstn  ( rst_n ) );
 
    // -----------------------------------------------------------------
    // DUT: CVFPU wrapper for CVA6
@@ -85,10 +94,23 @@ module top;
         .fpu_early_valid_o ( fpu_vif.fpu_early_valid_o )
     );
 
+    //Binding with SVA using implicit port connection
+    bind fpu_wrap cvfpu_sva#(
+        .CVA6Cfg(CVA6Cfg),
+        .fu_data_t(fu_data_t),
+        .exception_t(exception_t)
+    ) sva(.*);
+
+    bind dut.fpu_gen.i_fpnew_bulk.i_arbiter cvfpu_rsp_arb_sva#(
+        .NumIn(fpnew_pkg::NUM_OPGROUPS),
+        .DataType(output_t)
+    ) rsp_arb_sva(.*);
+
     initial begin
         uvm_config_db#(virtual fpu_if)::set(uvm_root::get( ) , "*" , "fpu_vif", fpu_vif);
         uvm_config_db#(virtual pulse_if)::set(uvm_root::get(), "*", "flush_driver", flush_vif );
         uvm_config_db#(virtual xrtl_clock_vif)::set(uvm_root::get( ) , "*" , "clk_if", clock_if);
+        uvm_config_db#(virtual bp_vif #(1))::set(uvm_root::get(), "*", "req_bp_agent", req_bp_vif);
 
         uvm_config_db #(virtual xrtl_clock_vif)::set(uvm_root::get() , "*" , "clock_driver" , clock_if);
         uvm_config_db #( virtual xrtl_reset_vif #( 1'b1,50,0) )::set(uvm_root::get(), "*", "reset_driver", reset_if );

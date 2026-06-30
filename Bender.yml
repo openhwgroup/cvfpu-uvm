@@ -24,6 +24,8 @@ sources:
       - ref_model_csim/rtl/fpu_refmodel_pkg.sv
       - env/fpu_env_pkg.sv
       - tests/fpu_test_pkg.sv
+      - top/rtl/cvfpu_rsp_arb_sva.sv
+      - top/rtl/cvfpu_sva.sv
       - top/rtl/tb_top.sv
       
 

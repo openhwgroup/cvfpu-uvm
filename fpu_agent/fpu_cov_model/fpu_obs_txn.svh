@@ -1,22 +1,28 @@
 /*
- *  Copyright (c) 2025 CEA*
- *  *Commissariat a l'Energie Atomique et aux Energies Alternatives (CEA)
+ *  Copyright (c) 2026 OpenHW Foundation
  *
  *  SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
  *
+ *  Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ *  may not use this file except in compliance with the License, or, at your
+ *  option, the Apache License version 2.0. You may obtain a copy of the
+ *  License at
+ *
+ *  https://solderpad.org/licenses/SHL-2.1/
+ *
  *  Unless required by applicable law or agreed to in writing, any work
- *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ *  distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  *  License for the specific language governing permissions and limitations
  *  under the License.
  */
 /*
  *  Authors       : Ihsane TAHIR
- *  Creation Date : 2025
- *  Description   : Observed transaction for the conversion coverage collector.
+ *  Creation Date : April, 2026
+ *  Description   : Observed transaction for the coverage collector.
  *                  Pairs the stimulus fields captured from fpu_txn with the
  *                  DUT response captured by the monitor.
- *
+ *  History       :
  */
 
 class fpu_obs_txn extends uvm_object;

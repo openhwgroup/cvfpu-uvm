@@ -1,4 +1,3 @@
-
 /*
  *  Copyright (c) 2026 OpenHW Foundation
  *
@@ -20,7 +19,7 @@
 /*
  *  Authors       : Ihsane TAHIR
  *  Creation Date : April, 2026
- *  Description   : Coverage model of the CVFPU UVM testbench
+ *  Description   : 
  *  History       :
  */
 

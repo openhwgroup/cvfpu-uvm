@@ -184,7 +184,7 @@ class fpu_random_op_seq extends  fpu_base_sequence;
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
-    function new( string name = "single_txn_sequence" );
+    function new( string name = "random_txn_sequence" );
         super.new(name);
     endfunction: new
 
@@ -194,7 +194,7 @@ class fpu_random_op_seq extends  fpu_base_sequence;
     virtual task body( );
         super.body();
 
-        item = fpu_txn::type_id::create("fpu single request");
+        item = fpu_txn::type_id::create("fpu random request");
 
         for (int i = 0; i < num_txn; i++) begin
             // --------------------------------------------------------------------------------
@@ -221,6 +221,58 @@ class fpu_random_op_seq extends  fpu_base_sequence;
 endclass: fpu_random_op_seq
 
 ///////////////////////////////////////////////////////////
+//              FPU SPECIAL VALUE SEQUENCE
+//////////////////////////////////////////////////////////
+class fpu_special_val_seq extends  fpu_base_sequence;
+  
+    `uvm_object_utils( fpu_special_val_seq );
+    
+    fpu_txn       item;
+
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+    function new( string name = "special_val_txn_sequence" );
+        super.new(name);
+    endfunction: new
+
+    // -------------------------------------------------------------------------
+    // Body
+    // -------------------------------------------------------------------------
+    virtual task body( );
+        super.body();
+
+        item = fpu_txn::type_id::create("fpu special value request");
+
+        for (int i = 0; i < num_txn; i++) begin
+            // --------------------------------------------------------------------------------
+            // to generate unique TID a list of tid in flight is passed on to the sequence
+            // --------------------------------------------------------------------------------
+            item.q_inflight_tid = my_sequencer.q_inflight_tid;
+
+            // --------------------------------
+            // Randomize transaction item
+            // --------------------------------
+            if ( !item.randomize()  with {
+                m_fp_op_type[0] inside {fpu_txn::INF, fpu_txn::QNAN, fpu_txn::SNAN, fpu_txn::ZERO, fpu_txn::SUBNORMAL};
+                m_fp_op_type[1] inside {fpu_txn::INF, fpu_txn::QNAN, fpu_txn::SNAN, fpu_txn::ZERO, fpu_txn::SUBNORMAL};
+                m_fp_op_type[2] inside {fpu_txn::INF, fpu_txn::QNAN, fpu_txn::SNAN, fpu_txn::ZERO, fpu_txn::SUBNORMAL};
+            })
+            begin
+                `uvm_fatal("body","Randomization failed");    
+            end
+            // --------------------------------------------------------------------------------
+            // It is used when the response is received from the driver
+            // --------------------------------------------------------------------------------
+            my_sequencer.q_inflight_tid[item.m_trans_id] = item.m_trans_id;
+
+            start_item( item );
+            finish_item( item );            
+        end
+  endtask: body
+endclass: fpu_special_val_seq
+
+///////////////////////////////////////////////////////////
 //              FPU OPERATION GROUP SEQUENCE
 //////////////////////////////////////////////////////////
 class fpu_op_group_seq extends  fpu_base_sequence;
@@ -232,7 +284,7 @@ class fpu_op_group_seq extends  fpu_base_sequence;
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
-    function new( string name = "single_txn_sequence" );
+    function new( string name = "op_group_sequence" );
         super.new(name);
     endfunction: new
 
@@ -241,9 +293,7 @@ class fpu_op_group_seq extends  fpu_base_sequence;
     // -------------------------------------------------------------------------
     virtual task body( );
         super.body();
-
-
-        item = fpu_txn::type_id::create("fpu single request");
+        item = fpu_txn::type_id::create("fpu op group request");
 
         for (int i = 0; i < num_txn; i++) begin
             // --------------------------------------------------------------------------------
@@ -276,80 +326,6 @@ class fpu_op_group_seq extends  fpu_base_sequence;
   endtask: body
 
 endclass: fpu_op_group_seq
-
-class bug_f2i_seq extends  fpu_base_sequence;
-  
-    `uvm_object_utils( bug_f2i_seq );
-
-    fpu_txn       item;
-
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-    function new( string name = "single_txn_sequence" );
-        super.new(name);
-    endfunction: new
-
-    // -------------------------------------------------------------------------
-    // Body
-    // -------------------------------------------------------------------------
-    virtual task body( );
-        super.body();
-
-        item = fpu_txn::type_id::create("fpu single request");
-
-        // --------------------------------------------------------------------------------
-        // to generate unique TID a list of tid in flight is passed on to the sequence
-        // --------------------------------------------------------------------------------
-        item.q_inflight_tid = my_sequencer.q_inflight_tid;
-
-        // --------------------------------
-        // Randomize transaction item
-        // --------------------------------
-        if ( !item.randomize() with 
-            {
-                m_operation == FCVT_F2I;
-                m_operand_a == 64'hc1e0000000000020;
-                m_fmt       == 1;
-                m_rm        == 0;
-                m_imm       == 0;
-            } ) 
-        begin
-            `uvm_fatal("body","Randomization failed");    
-        end
-        // --------------------------------------------------------------------------------
-        // It is used when the response is received from the driver
-        // --------------------------------------------------------------------------------
-        my_sequencer.q_inflight_tid[item.m_trans_id] = item.m_trans_id;
-
-        start_item( item );
-        finish_item( item );
-
-        // --------------------------------
-        // Randomize transaction item
-        // --------------------------------
-        if ( !item.randomize() with 
-            {
-                m_operation == FCVT_F2I;
-                m_operand_a == 64'hcf000000;
-                m_fmt       == 0;
-                m_rm        == 0;
-                m_imm       == 0;
-            } ) 
-        begin
-            `uvm_fatal("body","Randomization failed");    
-        end
-
-        // --------------------------------------------------------------------------------
-        // It is used when the response is received from the driver
-        // --------------------------------------------------------------------------------
-        my_sequencer.q_inflight_tid[item.m_trans_id] = item.m_trans_id;
-
-        start_item( item );
-        finish_item( item );
-  endtask: body
-
-endclass: bug_f2i_seq
 
 ///////////////////////////////////////////////////////////
 //              FPU UNIT OPERATION SEQUENCE
@@ -387,44 +363,13 @@ class fpu_unit_seq extends  fpu_base_sequence;
             // --------------------------------
             if ( !item.randomize() with 
                 {
-                    m_nan_box == 0;
-                    m_operation inside {FDIV, FSQRT};
-                    m_fmt inside {0,2};
-                    m_imm == 0;
-                    //-----------------------------------------------
-                    //  ISSUE #3123 in CVA6
-                    // m_nan_box == 0;
-                    // m_operation == FDIV;
-                    // m_operand_a == 'hc1ddd216;
-                    // m_operand_b == 'hbae084b4;
-                    // m_fmt == 0; // 32bits
-                    // m_imm == 0;
-                    //-----------------------------------------------
-                    //  ISSUE #145 + PR #147 ( tested and it works )
-                    // m_operation == FCVT_F2I;
-                    // m_operand_a == 64'hC1E0000000000000;
-                    // m_fmt == 1;
-                    // m_imm == 0;
-                    // m_rm == 0;
-                    //-----------------------------------------------
-                    // ISSUE #120 -> no error in current version with THMULTI
-                    // m_operation == FDIV;
-                    // m_operand_a == 'h0;
-                    // m_operand_b == 'h7F800000;
-                    // m_fmt == 0;
-                    //-----------------------------------------------
-                    // ISSUE #139 -> no error in current version with THMULTI
-                    // m_operation == FDIV;
-                    // m_operand_a == 'h7f7fffff;
-                    // m_operand_b == 'h3f7fffff;
-                    // m_fmt == 0;
-                    //-----------------------------------------------
-                    // ISSUE #121 -> no error in current version with THMULTI
-                    // m_operation == FDIV;
-                    // m_operand_a == 'h00000001;
-                    // m_operand_b == 'h3F800000;
-                    // m_fmt       == 0;
-                    //-----------------------------------------------
+                    m_nan_box == 1;
+                    m_operand_b == 'hffff7e00;
+                    m_operand_a == 'hffff4fc0;
+                    m_operation == FCMP;
+                    m_fmt == 0;
+                    // m_imm == 1; // Source format 64bits
+                    m_rm == 0; // Rounding mode RNE (LEQ)
                 } ) 
             begin
                 `uvm_fatal("body","Randomization failed");    
@@ -572,6 +517,7 @@ class fpu_fmt_op_group_seq extends  fpu_base_sequence;
             // to generate unique TID a list of tid in flight is passed on to the sequence
             // --------------------------------------------------------------------------------
             item.q_inflight_tid = my_sequencer.q_inflight_tid;
+            // `uvm_info("FPU SEQUENCE", $sformatf("Randomizing transaction with fmt=%0d(d) and op_group_cfg=%0d(d)", fmt, op_group_cfg), UVM_LOW);
 
             // --------------------------------
             // Randomize transaction item
@@ -599,3 +545,110 @@ class fpu_fmt_op_group_seq extends  fpu_base_sequence;
   endtask: body
 
 endclass: fpu_fmt_op_group_seq
+
+///////////////////////////////////////////////////////////
+//              FPU RANDOM OPERATION BACKPRESSURE SEQUENCE
+//////////////////////////////////////////////////////////
+class fpu_random_op_bp_seq extends  fpu_base_sequence;
+  
+    `uvm_object_utils( fpu_random_op_bp_seq );
+
+    fpu_txn       item;
+
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+    function new( string name = "random_op_bp_sequence" );
+        super.new(name);
+    endfunction: new
+
+    // -------------------------------------------------------------------------
+    // Body
+    // -------------------------------------------------------------------------
+    virtual task body( );
+        super.body();
+        item = fpu_txn::type_id::create("fpu random op bp request");
+
+        for (int i = 0; i < num_txn; i++) begin
+            // --------------------------------------------------------------------------------
+            // to generate unique TID a list of tid in flight is passed on to the sequence
+            // --------------------------------------------------------------------------------
+            item.q_inflight_tid = my_sequencer.q_inflight_tid;
+
+            // --------------------------------
+            // Randomize transaction item
+            // --------------------------------
+            if ( !item.randomize() with 
+                {
+                    m_delay == 0;
+                } ) 
+            begin
+                `uvm_fatal("body","Randomization failed");    
+            end
+            // --------------------------------------------------------------------------------
+            // It is used when the response is received from the driver
+            // --------------------------------------------------------------------------------
+            my_sequencer.q_inflight_tid[item.m_trans_id] = item.m_trans_id;
+
+            start_item( item );
+            finish_item( item );
+        end
+  endtask: body
+
+endclass: fpu_random_op_bp_seq
+
+///////////////////////////////////////////////////////////
+//              FPU OPERATION GROUP BACKPRESSURE SEQUENCE
+//////////////////////////////////////////////////////////
+class fpu_op_group_bp_seq extends  fpu_base_sequence;
+  
+    `uvm_object_utils( fpu_op_group_bp_seq );
+
+    fpu_txn       item;
+
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+    function new( string name = "op_group_bp_sequence" );
+        super.new(name);
+    endfunction: new
+
+    // -------------------------------------------------------------------------
+    // Body
+    // -------------------------------------------------------------------------
+    virtual task body( );
+        super.body();
+        item = fpu_txn::type_id::create("fpu op group bp request");
+
+        for (int i = 0; i < num_txn; i++) begin
+            // --------------------------------------------------------------------------------
+            // to generate unique TID a list of tid in flight is passed on to the sequence
+            // --------------------------------------------------------------------------------
+            item.q_inflight_tid = my_sequencer.q_inflight_tid;
+
+            // --------------------------------
+            // Randomize transaction item
+            // --------------------------------
+            if ( !item.randomize() with 
+                {
+                    (m_op_group_cfg == op_group_cfg);
+                    (m_op_group_cfg == 0) -> m_operation inside {FADD, FSUB, FMUL, FMADD, FMSUB, FNMADD, FNMSUB};
+                    (m_op_group_cfg == 1) -> m_operation inside {FDIV, FSQRT};
+                    (m_op_group_cfg == 2) -> m_operation inside {FCMP, FMIN_MAX, FSGNJ, FCLASS};
+                    (m_op_group_cfg == 3) -> m_operation inside {FCVT_I2F, FCVT_F2F, FCVT_F2I, FMV_X2F, FMV_F2X};
+                    m_delay == 0;
+                } ) 
+            begin
+                `uvm_fatal("body","Randomization failed");    
+            end
+            // --------------------------------------------------------------------------------
+            // It is used when the response is received from the driver
+            // --------------------------------------------------------------------------------
+            my_sequencer.q_inflight_tid[item.m_trans_id] = item.m_trans_id;
+
+            start_item( item );
+            finish_item( item );
+        end
+  endtask: body
+
+endclass: fpu_op_group_bp_seq
