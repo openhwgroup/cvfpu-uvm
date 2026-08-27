@@ -6,8 +6,8 @@ package:
     - "Riccardo Giunti"
 
 dependencies:
-  cva6        : { git: "https://github.com/openhwgroup/cva6.git", rev: 3f39c6} # branch master
   core-v-verif: { git: "https://github.com/openhwgroup/core-v-verif.git", rev: master}
+  fpnew: { git: "https://github.com/openhwgroup/cvfpu.git", rev: develop }
 
 sources:
   -
@@ -17,7 +17,14 @@ sources:
       - ref_model_csim/rtl
       - env
       - tests
+      - modules/cva6-cvfpu
     files:
+      - modules/cva6-cvfpu/config_pkg.sv
+      - modules/cva6-cvfpu/build_config_pkg.sv
+      - modules/cva6-cvfpu/cv64a60ax_config_pkg_cvfpu-uvm.sv
+      - modules/cva6-cvfpu/riscv_pkg.sv
+      - modules/cva6-cvfpu/ariane_pkg.sv
+      - modules/cva6-cvfpu/fpu_wrap.sv
       - fpu_common/fpu_common_pkg.sv
       - fpu_agent/fpu_agent_pkg.sv
       - fpu_agent/fpu_if.sv

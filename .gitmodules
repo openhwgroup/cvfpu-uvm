@@ -2,7 +2,7 @@
 	path = modules/core-v-verif
 	url = https://github.com/openhwgroup/core-v-verif.git
 	branch = master
-[submodule "modules/cva6"]
-	path = modules/cva6
-	url = https://github.com/openhwgroup/cva6.git
-	branch = master
+[submodule "modules/cvfpu"]
+	path = modules/cvfpu
+	url = https://github.com/openhwgroup/cvfpu.git
+	branch = develop
